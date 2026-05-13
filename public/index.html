@@ -150,16 +150,16 @@
     <div class="modal fade" id="playModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-fullscreen">
             <div class="modal-content bg-dark-blue">
-                <div class="modal-header border-0 px-4 py-3 bg-transparent position-absolute w-100"
-                    style="z-index: 10;">
-                    <h5 class="modal-title" id="playModalTitle"></h5>
-                    <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-4"
+                <div class="modal-header border-0 px-4 py-3 position-absolute w-100"
+                    style="z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);">
+                    <h5 class="modal-title text-white fw-bold" id="playModalTitle"></h5>
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-4 shadow-sm"
                         data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-2"></i> Fechar
                     </button>
                 </div>
-                <div class="modal-body p-0">
-                    <iframe id="gameFrame" src="" frameborder="0"></iframe>
+                <div class="modal-body p-0 d-flex justify-content-center align-items-center bg-black">
+                    <iframe id="gameFrame" src="" frameborder="0" class="w-100 vh-100"></iframe>
                 </div>
             </div>
         </div>
