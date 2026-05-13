@@ -148,7 +148,7 @@ app.use('/games', express.static(GAMES_FOLDER));
 
 app.post('/upload', upload.single('gameFile'), async (req, res) => {
     try {
-        const { gameTitle, authorName, gameCategory } = req.body;
+        const { gameTitle, authorName, gameCategory, city, school, studentClass } = req.body;
         const file = req.file;
 
         if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
@@ -201,6 +201,9 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
             title: gameTitle,
             author: authorName,
             category: gameCategory,
+            city: city || null,
+            school: school || null,
+            studentClass: studentClass || null,
             url: gameUrl,
             timestamp: Date.now()
         };

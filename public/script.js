@@ -15,9 +15,12 @@ form.addEventListener('submit', async (e) => {
     const gameTitle = document.getElementById('gameTitle').value.trim();
     const authorName = document.getElementById('authorName').value.trim();
     const gameCategory = document.getElementById('gameCategory').value;
+    const city = document.getElementById('citySelect').value;
+    const school = document.getElementById('schoolSelect').value;
+    const studentClass = document.getElementById('classSelect').value;
     const gameFile = document.getElementById('gameFile').files[0];
 
-    if (!gameTitle || !authorName || !gameCategory || !gameFile) {
+    if (!gameTitle || !authorName || !gameCategory || !city || !school || !studentClass || !gameFile) {
         status.innerText = "Preencha todos os campos e selecione um arquivo.";
         status.className = "mt-2 text-center small text-danger";
         return;
@@ -30,6 +33,9 @@ form.addEventListener('submit', async (e) => {
         formData.append('gameTitle', gameTitle);
         formData.append('authorName', authorName);
         formData.append('gameCategory', gameCategory);
+        formData.append('city', city);
+        formData.append('school', school);
+        formData.append('studentClass', studentClass);
         formData.append('gameFile', gameFile);
 
         const response = await fetch('/upload', {
@@ -71,7 +77,7 @@ async function loadGames() {
     try {
         const response = await fetch('/api/games');
         if (!response.ok) throw new Error('Erro ao carregar jogos');
-        
+
         const games = await response.json();
         gamesContainer.innerHTML = '';
 
@@ -106,9 +112,12 @@ function appendGame(game) {
                 <div class="card-body-modern">
                     <span class="category-tag">${game.category}</span>
                     <h3 class="h5 fw-bold mb-0">${game.title}</h3>
-                    <div class="author-info">
-                        <i class="bi bi-person-circle"></i>
-                        <span>${game.author}</span>
+                    <div class="author-info flex-column align-items-start gap-1">
+                        <div>
+                            <i class="bi bi-person-circle"></i>
+                            <span>${game.author} ${game.studentClass ? `- ${game.studentClass}` : ''}</span>
+                        </div>
+                        ${game.school ? `<div class="small"><i class="bi bi-building"></i> ${game.school}</div>` : ''}
                     </div>
                 </div>
                 <div class="card-footer-modern">
@@ -135,7 +144,7 @@ gamesContainer.addEventListener('click', async (e) => {
         playGame(url, title);
     } else if (deleteBtn) {
         const gameId = deleteBtn.dataset.gameId;
-        await deleteGame(gameId);
+        // await deleteGame(gameId); // Desabilitado
     }
 });
 
@@ -155,28 +164,28 @@ function playGame(url, title) {
     }
 }
 
-async function deleteGame(gameId) {
-    if (!confirm('Tem certeza que deseja deletar este jogo?')) return;
+// async function deleteGame(gameId) {
+//     if (!confirm('Tem certeza que deseja deletar este jogo?')) return;
 
-    try {
-        const response = await fetch('/api/games/' + gameId, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao deletar');
-        }
-        
-        await loadGames();
-    } catch (err) {
-        alert('Erro ao deletar: ' + err.message);
-        console.error(err);
-    }
-}
+//     try {
+//         const response = await fetch('/api/games/' + gameId, {
+//             method: 'DELETE'
+//         });
+
+//         if (!response.ok) {
+//             const errorData = await response.json();
+//             throw new Error(errorData.error || 'Erro ao deletar');
+//         }
+
+//         await loadGames();
+//     } catch (err) {
+//         alert('Erro ao deletar: ' + err.message);
+//         console.error(err);
+//     }
+// }
 
 window.playGame = playGame;
-window.deleteGame = deleteGame;
+// window.deleteGame = deleteGame;
 
 document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
     document.getElementById('gameFrame').src = '';
