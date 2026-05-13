@@ -86,7 +86,7 @@ body {
 .game-card {
     background: var(--bg-card);
     color: var(--text-secundary);
-    border-radius: var(--border-radius); 
+    border-radius: var(--border-radius);
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     height: 100%;
@@ -160,6 +160,16 @@ body {
 .category-tag {
     font-size: 0.75rem;
     color: #f25424;
+    /* Tags de categoria em laranja para destaque */
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.category-tag:hover {
+    font-size: 0.75rem;
+    color: #0c4da1;
     /* Tags de categoria em laranja para destaque */
     font-weight: 600;
     text-transform: uppercase;
