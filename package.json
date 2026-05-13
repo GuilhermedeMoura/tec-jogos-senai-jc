@@ -1,0 +1,23 @@
+{
+  "name": "gamenai",
+  "version": "1.0.0",
+  "description": "A game upload and management server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.17",
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1"
+  },
+  "keywords": [
+    "game",
+    "upload",
+    "server"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
