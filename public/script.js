@@ -118,6 +118,7 @@ function appendGame(game) {
                             <span>${game.author} ${game.studentClass ? `- ${game.studentClass}` : ''}</span>
                         </div>
                         ${game.school ? `<div class="small"><i class="bi bi-building"></i> ${game.school}</div>` : ''}
+                        ${game.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${game.city}</div>` : ''}
                     </div>
                 </div>
                 <div class="card-footer-modern">
