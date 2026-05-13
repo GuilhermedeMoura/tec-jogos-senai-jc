@@ -1,11 +1,12 @@
 :root {
     --bg-dark: #0c4da1;
-    --bg-card: #ffffff;
+    --bg-card: #13141a;
     --bg-input: #1e2028;
     --text-main: #ffffff;
+    --text-secundary: #0c4da1;
     --text-muted: #8b8f95;
     /* Gradiente Azul para Laranja */
-    --accent-gradient: #0c4da1;
+    --accent-gradient: #f25424;
     /* Azul como cor de destaque principal */
     --accent-color: #0c4da1;
     --border-radius: 20px;
@@ -84,8 +85,8 @@ body {
 
 .game-card {
     background: var(--bg-card);
-    border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-secundary);
+    border-radius: var(--border-radius); 
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     height: 100%;
@@ -97,7 +98,7 @@ body {
     border-color: rgba(242, 84, 36, 0.5);
     /* Borda laranja no hover */
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    background: #181920;
+    background: #f25424;
 }
 
 .game-img-wrapper {
