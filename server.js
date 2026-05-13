@@ -6,8 +6,8 @@ const fs = require('fs');
 
 // Firebase Initialization
 const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, addDoc, deleteDoc, doc, getDocs, query, orderBy } = require('firebase/firestore');
-const { getStorage, ref, uploadBytes, getBytes, deleteObject } = require('firebase/storage');
+const { getFirestore, collection, addDoc, deleteDoc, doc, getDocs, query, orderBy, where } = require('firebase/firestore');
+const { getStorage, ref, uploadBytes, getBytes, deleteObject, getDownloadURL } = require('firebase/storage');
 
 const firebaseConfig = {
   apiKey: "AIzaSyD0J8UyDyOxhhpj9pvNj-eUuSRiWJ8Qjv8",
@@ -91,9 +91,14 @@ app.use('/games/:gameId', async (req, res, next) => {
     
     console.log(`[Cache Miss] Game ${gameId} not found locally. Fetching from Firebase...`);
     try {
-        // Try to fetch the zip from Firebase Storage
+        // Try to fetch the zip from Firebase Storage using getDownloadURL to avoid 10MB getBytes limit
         const storageRef = ref(storage, `games/${gameId}.zip`);
-        const arrayBuffer = await getBytes(storageRef);
+        const url = await getDownloadURL(storageRef);
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to download: ${response.statusText}`);
+        
+        const arrayBuffer = await response.arrayBuffer();
         
         // Save the downloaded zip locally
         const zipPath = path.join(UPLOADS_FOLDER, `${gameId}.zip`);
@@ -113,6 +118,27 @@ app.use('/games/:gameId', async (req, res, next) => {
         next();
     } catch (error) {
         console.error(`[Error] Failed to fetch/extract game ${gameId}:`, error);
+        
+        // Fallback for old games that might still be pointing to an external URL
+        try {
+            const q = query(collection(db, "games"), where("id", "==", gameId));
+            const snapshot = await getDocs(q);
+            let fallbackUrl = null;
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.url && data.url.startsWith('http')) {
+                    fallbackUrl = data.url;
+                }
+            });
+            
+            if (fallbackUrl) {
+                console.log(`[Fallback] Redirecting old game ${gameId} to ${fallbackUrl}`);
+                return res.redirect(fallbackUrl);
+            }
+        } catch (fallbackErr) {
+            console.error("Fallback error:", fallbackErr);
+        }
+
         res.status(404).send('Jogo não encontrado ou erro ao baixar do servidor remoto.');
     }
 });
