@@ -279,10 +279,13 @@ app.delete('/api/games/:gameId', async (req, res) => {
         const q = query(collection(db, "games"));
         const snapshot = await getDocs(q);
         let targetDocId = null;
+        let gameDataId = null;
         
         snapshot.forEach((docSnap) => {
-            if (String(docSnap.data().id) === String(gameId)) {
+            // Verifica pelo docId do Firebase OU pelo id antigo
+            if (docSnap.id === gameId || String(docSnap.data().id) === String(gameId)) {
                 targetDocId = docSnap.id;
+                gameDataId = docSnap.data().id; // Precisamos disso para apagar o ZIP correto
             }
         });
         
@@ -295,16 +298,22 @@ app.delete('/api/games/:gameId', async (req, res) => {
         
         // Delete from Storage
         try {
-            const storageRef = ref(storage, `games/${gameId}.zip`);
-            await deleteObject(storageRef);
+            const zipNameId = gameDataId || gameId;
+            if (zipNameId && zipNameId !== "undefined") {
+                const storageRef = ref(storage, `games/${zipNameId}.zip`);
+                await deleteObject(storageRef);
+            }
         } catch (e) {
             console.error('File missing in storage, skipping deletion', e);
         }
 
         // Delete Local Cache
-        const localGamePath = path.join(GAMES_FOLDER, gameId);
-        if (fs.existsSync(localGamePath)) {
-            fs.rmSync(localGamePath, { recursive: true, force: true });
+        const localCacheId = gameDataId || gameId;
+        if (localCacheId && localCacheId !== "undefined") {
+            const localGamePath = path.join(GAMES_FOLDER, localCacheId);
+            if (fs.existsSync(localGamePath)) {
+                fs.rmSync(localGamePath, { recursive: true, force: true });
+            }
         }
 
         res.status(200).json({ message: 'Jogo deletado com sucesso!' });

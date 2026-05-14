@@ -141,14 +141,16 @@ async function loadGames() {
 }
 
 function appendGame(game) {
-    if (document.getElementById(`game-${game.id}`)) return;
+    // Usamos o docId do Firebase pois ele sempre existe e é único (protege contra game.id undefined)
+    const uniqueId = game.docId || game.id;
+    if (document.getElementById(`game-${uniqueId}`)) return;
 
     // Adicionamos atributos data-* para filtragem fácil
     const card = `
-    <div class="col" id="game-${game.id}">
+    <div class="col" id="game-${uniqueId}">
         <div class="game-card-container position-relative">
             <div class="game-card" 
-                 data-game-id="${game.id}" 
+                 data-game-id="${uniqueId}" 
                  data-game-url="${game.url}" 
                  data-game-title="${game.title}" 
                  data-author="${game.author}"
