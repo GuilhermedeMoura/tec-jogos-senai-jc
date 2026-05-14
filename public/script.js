@@ -202,7 +202,7 @@ gamesContainer.addEventListener('click', async (e) => {
         playGame(url, title);
     } else if (deleteBtn) {
         const gameId = deleteBtn.dataset.gameId;
-        await deleteGame(gameId); 
+        await deleteGame(gameId);
     }
 });
 
@@ -249,11 +249,11 @@ async function deleteGame(gameId) {
             gameCard.remove();
             applyFilters(); // Reaplicar filtros para lidar com a mensagem de estado vazio
         }
-        
+
     } catch (err) {
         alert('Erro ao deletar: ' + err.message);
         console.error(err);
-        
+
         // Restaurar botão em caso de erro
         const deleteBtn = document.querySelector(`.delete-btn[data-game-id="${gameId}"]`);
         if (deleteBtn) {
