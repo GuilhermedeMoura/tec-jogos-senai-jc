@@ -178,11 +178,6 @@ function appendGame(game) {
                         ${game.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${game.city}</div>` : ''}
                     </div>
                 </div>
-                <div class="card-footer-modern">
-                    <button class="btn btn-sm btn-danger w-100 delete-btn" data-game-id="${game.id}">
-                        <i class="bi bi-trash"></i> Deletar
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -193,16 +188,12 @@ function appendGame(game) {
 
 gamesContainer.addEventListener('click', async (e) => {
     const playBtn = e.target.closest('[class*="btn-play"]');
-    const deleteBtn = e.target.closest('.delete-btn');
 
     if (playBtn) {
         const card = playBtn.closest('[data-game-id]');
         const url = card.dataset.gameUrl;
         const title = card.dataset.gameTitle;
         playGame(url, title);
-    } else if (deleteBtn) {
-        const gameId = deleteBtn.dataset.gameId;
-        await deleteGame(gameId);
     }
 });
 
@@ -221,48 +212,6 @@ function playGame(url, title) {
         alert('Erro ao carregar o jogo: ' + error.message);
     }
 }
-
-window.playGame = playGame;
-
-async function deleteGame(gameId) {
-    if (!confirm('Tem certeza que deseja deletar este jogo?')) return;
-
-    try {
-        const deleteBtn = document.querySelector(`.delete-btn[data-game-id="${gameId}"]`);
-        if (deleteBtn) {
-            deleteBtn.disabled = true;
-            deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deletando...';
-        }
-
-        const response = await fetch('/api/games/' + gameId, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao deletar');
-        }
-
-        // Remover o elemento visualmente sem recarregar a página toda
-        const gameCard = document.getElementById(`game-${gameId}`);
-        if (gameCard) {
-            gameCard.remove();
-            applyFilters(); // Reaplicar filtros para lidar com a mensagem de estado vazio
-        }
-
-    } catch (err) {
-        alert('Erro ao deletar: ' + err.message);
-        console.error(err);
-
-        // Restaurar botão em caso de erro
-        const deleteBtn = document.querySelector(`.delete-btn[data-game-id="${gameId}"]`);
-        if (deleteBtn) {
-            deleteBtn.disabled = false;
-            deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Deletar';
-        }
-    }
-}
-window.deleteGame = deleteGame;
 
 document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
     document.getElementById('gameFrame').src = '';
