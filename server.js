@@ -39,14 +39,29 @@ const upload = multer({ storage: diskStorage });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Headers necessários para jogos Unity WebGL e Godot (SharedArrayBuffer)
+app.use('/games', (req, res, next) => {
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    next();
+});
+
 app.use(express.static('public'));
 
 function findIndexHtml(dirPath) {
     const files = fs.readdirSync(dirPath);
-    for (const file of files) {
+    
+    // Filtra pastas indesejadas como __MACOSX e arquivos ocultos do Mac
+    const validFiles = files.filter(f => !f.includes('__MACOSX') && f !== 'node_modules' && !f.startsWith('._'));
+    
+    for (const file of validFiles) {
         if (file.toLowerCase() === 'index.html') {
-            return dirPath;
+            return { dirPath, fileName: file };
         }
+    }
+    
+    for (const file of validFiles) {
         const filePath = path.join(dirPath, file);
         if (fs.statSync(filePath).isDirectory()) {
             const result = findIndexHtml(filePath);
@@ -109,9 +124,16 @@ app.use('/games/:gameId', async (req, res, next) => {
         const zip = new AdmZip(zipPath);
         zip.extractAllTo(localGamePath, true);
         
-        let indexHtmlPath = findIndexHtml(localGamePath);
-        if (indexHtmlPath) {
-            reorganizeGameFiles(localGamePath, indexHtmlPath);
+        let indexInfo = findIndexHtml(localGamePath);
+        if (indexInfo) {
+            reorganizeGameFiles(localGamePath, indexInfo.dirPath);
+            
+            // Garantir que o nome final do arquivo seja exatamente 'index.html' (minúsculo)
+            const targetHtml = path.join(localGamePath, 'index.html');
+            const originalHtml = path.join(localGamePath, indexInfo.fileName);
+            if (indexInfo.fileName !== 'index.html' && fs.existsSync(originalHtml)) {
+                fs.renameSync(originalHtml, targetHtml);
+            }
         }
         
         console.log(`[Cache Hit] Game ${gameId} extracted successfully.`);
@@ -163,7 +185,10 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
         if (file.originalname.toLowerCase().endsWith('.zip')) {
             const zip = new AdmZip(file.path);
             zip.extractAllTo(localGamePath, true);
-            indexHtmlPath = findIndexHtml(localGamePath);
+            indexInfo = findIndexHtml(localGamePath);
+            if (indexInfo) {
+                indexHtmlPath = indexInfo.dirPath;
+            }
             
             // Upload the original zip to Firebase Storage
             const fileBuffer = fs.readFileSync(file.path);
@@ -186,12 +211,21 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
 
         fs.unlinkSync(file.path);
 
-        if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, 'index.html'))) {
+        if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, indexInfo ? indexInfo.fileName : 'index.html'))) {
             fs.rmSync(localGamePath, { recursive: true, force: true });
-            return res.status(400).json({ error: 'Arquivo index.html não encontrado' });
+            return res.status(400).json({ error: 'Arquivo index.html não encontrado no ZIP.' });
         }
 
         reorganizeGameFiles(localGamePath, indexHtmlPath);
+        
+        // Garantir lowercase no upload original também
+        if (indexInfo && indexInfo.fileName !== 'index.html') {
+            const originalHtml = path.join(localGamePath, indexInfo.fileName);
+            const targetHtml = path.join(localGamePath, 'index.html');
+            if (fs.existsSync(originalHtml)) {
+                fs.renameSync(originalHtml, targetHtml);
+            }
+        }
 
         const gameUrl = `/games/${gameId}/index.html`;
         
