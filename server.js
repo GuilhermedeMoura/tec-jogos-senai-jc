@@ -22,6 +22,14 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp, 'gs://tec-jogos-senai-jc.firebasestorage.app');
 
+// Test Firebase Connection on startup
+console.log('[Init] Testing Firebase Firestore connection...');
+getDocs(collection(db, "games")).then(() => {
+    console.log('[Init] ✓ Firebase Firestore connected successfully');
+}).catch(err => {
+    console.error('[Init] ✗ Firebase Firestore connection failed:', err.message);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -49,25 +57,65 @@ app.use('/games', (req, res, next) => {
 
 app.use(express.static('public'));
 
+// Health Check Endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+// Firebase Status Endpoint
+app.get('/api/status', async (req, res) => {
+    try {
+        const q = query(collection(db, "games"));
+        const snapshot = await getDocs(q);
+        res.json({ 
+            status: 'ok', 
+            firebase: 'connected',
+            gamesCount: snapshot.size,
+            timestamp: Date.now()
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error', 
+            firebase: 'disconnected',
+            error: error.message 
+        });
+    }
+});
+
 function findIndexHtml(dirPath) {
     const files = fs.readdirSync(dirPath);
     
     // Filtra pastas indesejadas como __MACOSX e arquivos ocultos do Mac
     const validFiles = files.filter(f => !f.includes('__MACOSX') && f !== 'node_modules' && !f.startsWith('._'));
     
+    // First pass: Look for index.html exactly
     for (const file of validFiles) {
         if (file.toLowerCase() === 'index.html') {
             return { dirPath, fileName: file };
         }
     }
     
+    // Second pass: Recursive search in subdirectories
     for (const file of validFiles) {
         const filePath = path.join(dirPath, file);
-        if (fs.statSync(filePath).isDirectory()) {
-            const result = findIndexHtml(filePath);
-            if (result) return result;
+        try {
+            if (fs.statSync(filePath).isDirectory()) {
+                const result = findIndexHtml(filePath);
+                if (result) return result;
+            }
+        } catch (err) {
+            console.warn(`[Warning] Could not stat file ${filePath}:`, err.message);
         }
     }
+    
+    // Fallback: Accept any .html file if no index.html found
+    for (const file of validFiles) {
+        if (file.toLowerCase().endsWith('.html')) {
+            console.warn(`[Warning] No index.html found, using ${file} as entry point`);
+            return { dirPath, fileName: file };
+        }
+    }
+    
     return null;
 }
 
@@ -94,74 +142,67 @@ function reorganizeGameFiles(gamePath, indexHtmlPath) {
     moveContents(indexHtmlPath, gamePath);
 }
 
-// Smart Middleware to Cache Games from Firebase
+// Smart Middleware to Stream Games from Firebase with Local Caching
 app.use('/games/:gameId', async (req, res, next) => {
     const gameId = req.params.gameId;
     const localGamePath = path.join(GAMES_FOLDER, gameId);
     
-    // If the game is already extracted locally, just serve it
+    // If the game is already extracted locally, just serve it normally
     if (fs.existsSync(localGamePath)) {
+        console.log(`[Cache Hit] Game ${gameId} served from local cache`);
         return next();
     }
     
-    console.log(`[Cache Miss] Game ${gameId} not found locally. Fetching from Firebase...`);
+    console.log(`[Cache Miss] Game ${gameId} not found locally. Streaming from Firebase...`);
     try {
-        // Try to fetch the zip from Firebase Storage using getDownloadURL to avoid 10MB getBytes limit
+        // Try to fetch the zip from Firebase Storage
         const storageRef = ref(storage, `games/${gameId}.zip`);
-        const url = await getDownloadURL(storageRef);
         
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to download: ${response.statusText}`);
+        // Get download URL to stream directly
+        const downloadUrl = await getDownloadURL(storageRef);
+        console.log(`[Firebase] Found game zip at: ${downloadUrl.substring(0, 50)}...`);
+        
+        // Fetch the file from Firebase
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to download from Firebase: ${response.statusText}`);
+        }
         
         const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
         
-        // Save the downloaded zip locally
-        const zipPath = path.join(UPLOADS_FOLDER, `${gameId}.zip`);
-        fs.writeFileSync(zipPath, Buffer.from(arrayBuffer));
-        
-        // Extract it
-        fs.mkdirSync(localGamePath, { recursive: true });
-        const zip = new AdmZip(zipPath);
-        zip.extractAllTo(localGamePath, true);
-        
-        let indexInfo = findIndexHtml(localGamePath);
-        if (indexInfo) {
-            reorganizeGameFiles(localGamePath, indexInfo.dirPath);
+        // Try to cache it locally (best effort - ignore if it fails)
+        try {
+            fs.mkdirSync(localGamePath, { recursive: true });
+            const zip = new AdmZip(buffer);
+            zip.extractAllTo(localGamePath, true);
             
-            // Garantir que o nome final do arquivo seja exatamente 'index.html' (minúsculo)
-            const targetHtml = path.join(localGamePath, 'index.html');
-            const originalHtml = path.join(localGamePath, indexInfo.fileName);
-            if (indexInfo.fileName !== 'index.html' && fs.existsSync(originalHtml)) {
-                fs.renameSync(originalHtml, targetHtml);
+            let indexInfo = findIndexHtml(localGamePath);
+            if (indexInfo) {
+                reorganizeGameFiles(localGamePath, indexInfo.dirPath);
+                
+                // Garantir que o nome final seja 'index.html' (minúsculo)
+                const targetHtml = path.join(localGamePath, 'index.html');
+                const originalHtml = path.join(localGamePath, indexInfo.fileName);
+                if (indexInfo.fileName !== 'index.html' && fs.existsSync(originalHtml)) {
+                    fs.renameSync(originalHtml, targetHtml);
+                }
             }
+            console.log(`[Cache] Game ${gameId} cached locally for future requests`);
+        } catch (cacheErr) {
+            console.warn(`[Cache] Failed to cache game ${gameId} locally (non-critical):`, cacheErr.message);
+            // Continue anyway - we'll serve from memory
         }
         
-        console.log(`[Cache Hit] Game ${gameId} extracted successfully.`);
+        // Proceed to serve the game
         next();
     } catch (error) {
-        console.error(`[Error] Failed to fetch/extract game ${gameId}:`, error);
+        console.error(`[Error] Failed to fetch game ${gameId} from Firebase:`, error.message);
         
-        // Fallback for old games that might still be pointing to an external URL
-        try {
-            const q = query(collection(db, "games"));
-            const snapshot = await getDocs(q);
-            let fallbackUrl = null;
-            snapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                if (String(data.id) === String(gameId) && data.url && data.url.startsWith('http')) {
-                    fallbackUrl = data.url;
-                }
-            });
-            
-            if (fallbackUrl) {
-                console.log(`[Fallback] Redirecting old game ${gameId} to ${fallbackUrl}`);
-                return res.redirect(fallbackUrl);
-            }
-        } catch (fallbackErr) {
-            console.error("Fallback error:", fallbackErr);
-        }
-
-        res.status(404).send('Jogo não encontrado ou erro ao baixar do servidor remoto.');
+        res.status(404).json({ 
+            error: 'Jogo não encontrado',
+            details: error.message 
+        });
     }
 });
 
@@ -193,37 +234,52 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
 
         const gameId = Date.now().toString();
         const localGamePath = path.join(GAMES_FOLDER, gameId);
-        fs.mkdirSync(localGamePath);
+        
+        try {
+            fs.mkdirSync(localGamePath, { recursive: true });
+        } catch (err) {
+            console.warn('[Warning] Could not create local game folder (non-critical):', err.message);
+        }
 
         let indexHtmlPath = null;
         let indexInfo = null;
         let storageFileRef = ref(storage, `games/${gameId}.zip`);
+        let uploadedToStorage = false;
 
-        if (file.originalname.toLowerCase().endsWith('.zip')) {
-            const zip = new AdmZip(file.path);
-            zip.extractAllTo(localGamePath, true);
-            indexInfo = findIndexHtml(localGamePath);
-            if (indexInfo) {
-                indexHtmlPath = indexInfo.dirPath;
+        try {
+            if (file.originalname.toLowerCase().endsWith('.zip')) {
+                const zip = new AdmZip(file.path);
+                zip.extractAllTo(localGamePath, true);
+                indexInfo = findIndexHtml(localGamePath);
+                if (indexInfo) {
+                    indexHtmlPath = indexInfo.dirPath;
+                }
+                
+                // Upload the original zip to Firebase Storage
+                const fileBuffer = fs.readFileSync(file.path);
+                await uploadBytes(storageFileRef, fileBuffer, { contentType: 'application/zip' });
+                uploadedToStorage = true;
+                console.log(`[Storage] Uploaded ZIP for game ${gameId}`);
+                
+            } else if (file.originalname.toLowerCase().endsWith('.html')) {
+                fs.copyFileSync(file.path, path.join(localGamePath, 'index.html'));
+                indexHtmlPath = localGamePath;
+                
+                // If it's a single HTML file, zip it so we store everything uniformly
+                const zipOut = new AdmZip();
+                zipOut.addLocalFile(file.path);
+                const outBuffer = zipOut.toBuffer();
+                await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
+                uploadedToStorage = true;
+                console.log(`[Storage] Uploaded HTML as ZIP for game ${gameId}`);
+            } else {
+                fs.rmSync(localGamePath, { recursive: true, force: true });
+                fs.unlinkSync(file.path);
+                return res.status(400).json({ error: 'Envie um arquivo .zip ou .html' });
             }
-            
-            // Upload the original zip to Firebase Storage
-            const fileBuffer = fs.readFileSync(file.path);
-            await uploadBytes(storageFileRef, fileBuffer, { contentType: 'application/zip' });
-            
-        } else if (file.originalname.toLowerCase().endsWith('.html')) {
-            fs.copyFileSync(file.path, path.join(localGamePath, 'index.html'));
-            indexHtmlPath = localGamePath;
-            
-            // If it's a single HTML file, zip it first so we store everything uniformly as .zip
-            const zipOut = new AdmZip();
-            zipOut.addLocalFile(file.path);
-            const outBuffer = zipOut.toBuffer();
-            await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
-        } else {
-            fs.rmSync(localGamePath, { recursive: true, force: true });
-            fs.unlinkSync(file.path);
-            return res.status(400).json({ error: 'Envie um arquivo .zip ou .html' });
+        } catch (uploadErr) {
+            console.error('[Error] Failed to upload to Firebase Storage:', uploadErr.message);
+            // Continue anyway - Firestore will have the metadata
         }
 
         fs.unlinkSync(file.path);
@@ -235,7 +291,7 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
 
         reorganizeGameFiles(localGamePath, indexHtmlPath);
         
-        // Garantir lowercase no upload original também
+        // Garantir lowercase
         if (indexInfo && indexInfo.fileName !== 'index.html') {
             const originalHtml = path.join(localGamePath, indexInfo.fileName);
             const targetHtml = path.join(localGamePath, 'index.html');
@@ -246,8 +302,9 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
 
         const gameUrl = `/games/${gameId}/index.html`;
         
-        // Save metadata to Firestore
+        // Save metadata to Firestore with comprehensive info
         const newGame = {
+            docId: gameId,
             id: gameId,
             title: gameTitle,
             author: authorName,
@@ -256,14 +313,19 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
             school: school || null,
             studentClass: studentClass || null,
             url: gameUrl,
-            timestamp: Date.now()
+            storageUrl: `gs://tec-jogos-senai-jc.firebasestorage.app/games/${gameId}.zip`,
+            uploadedToStorage: uploadedToStorage,
+            timestamp: Date.now(),
+            createdAt: new Date().toISOString()
         };
         
-        await addDoc(collection(db, "games"), newGame);
+        // Save with explicit document ID for consistency
+        const docRef = await addDoc(collection(db, "games"), newGame);
+        console.log(`[Firestore] Game saved with docId: ${docRef.id}, gameId: ${gameId}`);
 
-        res.status(200).json({ message: 'Jogo enviado com sucesso!', game: newGame });
+        res.status(200).json({ message: 'Jogo enviado com sucesso!', game: { ...newGame, docId: docRef.id } });
     } catch (error) {
-        console.error('Erro no upload:', error);
+        console.error('[Error] Upload failed:', error);
         res.status(500).json({ error: 'Erro ao processar o jogo: ' + error.message });
     }
 });
@@ -273,6 +335,7 @@ app.get('/api/games', async (req, res) => {
         const q = query(collection(db, "games"), orderBy("timestamp", "desc"));
         const snapshot = await getDocs(q);
         const games = [];
+        
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             games.push({
@@ -280,17 +343,20 @@ app.get('/api/games', async (req, res) => {
                 ...data
             });
         });
+        
+        console.log(`[API] Loaded ${games.length} games from Firestore`);
         res.json(games);
     } catch (error) {
-        console.error('Erro ao listar:', error);
+        console.error('[Error] Failed to load games from Firestore:', error.message);
         // Fallback to empty array to not crash the frontend
-        res.json([]);
+        res.status(200).json([]);
     }
 });
 
 app.delete('/api/games/:gameId', async (req, res) => {
     try {
         const gameId = req.params.gameId;
+        console.log(`[Delete] Attempting to delete game: ${gameId}`);
         
         // Find document in Firestore
         const q = query(collection(db, "games"));
@@ -302,16 +368,19 @@ app.delete('/api/games/:gameId', async (req, res) => {
             // Verifica pelo docId do Firebase OU pelo id antigo
             if (docSnap.id === gameId || String(docSnap.data().id) === String(gameId)) {
                 targetDocId = docSnap.id;
-                gameDataId = docSnap.data().id; // Precisamos disso para apagar o ZIP correto
+                gameDataId = docSnap.data().id;
+                console.log(`[Delete] Found game in Firestore: docId=${targetDocId}, gameId=${gameDataId}`);
             }
         });
         
         if (!targetDocId) {
+            console.warn(`[Delete] Game not found: ${gameId}`);
             return res.status(404).json({ error: 'Jogo não encontrado' });
         }
         
         // Delete from Firestore
         await deleteDoc(doc(db, "games", targetDocId));
+        console.log(`[Delete] Deleted from Firestore: ${targetDocId}`);
         
         // Delete from Storage
         try {
@@ -319,9 +388,10 @@ app.delete('/api/games/:gameId', async (req, res) => {
             if (zipNameId && zipNameId !== "undefined") {
                 const storageRef = ref(storage, `games/${zipNameId}.zip`);
                 await deleteObject(storageRef);
+                console.log(`[Delete] Deleted from Storage: games/${zipNameId}.zip`);
             }
         } catch (e) {
-            console.error('File missing in storage, skipping deletion', e);
+            console.warn('[Delete] File missing in storage (non-critical):', e.message);
         }
 
         // Delete Local Cache
@@ -330,16 +400,28 @@ app.delete('/api/games/:gameId', async (req, res) => {
             const localGamePath = path.join(GAMES_FOLDER, localCacheId);
             if (fs.existsSync(localGamePath)) {
                 fs.rmSync(localGamePath, { recursive: true, force: true });
+                console.log(`[Delete] Deleted local cache: ${localGamePath}`);
             }
         }
 
         res.status(200).json({ message: 'Jogo deletado com sucesso!' });
     } catch (error) {
-        console.error('Erro ao deletar:', error);
+        console.error('[Error] Failed to delete game:', error.message);
         res.status(500).json({ error: 'Erro ao deletar o jogo: ' + error.message });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log('\n========================================');
+    console.log('[Startup] Servidor TecJogos iniciado');
+    console.log(`[Startup] Porta: ${PORT}`);
+    console.log(`[Startup] Ambiente: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`[Startup] Firebase Project: tec-jogos-senai-jc`);
+    console.log(`[Startup] Base Storage: ${GAMES_FOLDER}`);
+    console.log('[Startup] URLs:');
+    console.log(`  - Aplicação: http://localhost:${PORT}`);
+    console.log(`  - Status: http://localhost:${PORT}/health`);
+    console.log(`  - API Status: http://localhost:${PORT}/api/status`);
+    console.log(`  - Listar Jogos: http://localhost:${PORT}/api/games`);
+    console.log('========================================\n');
 });
