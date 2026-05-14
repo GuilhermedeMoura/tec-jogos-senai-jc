@@ -165,8 +165,24 @@ app.use('/games/:gameId', async (req, res, next) => {
     }
 });
 
-// Serve the games statically after middleware
-app.use('/games', express.static(GAMES_FOLDER));
+// Serve the games statically after middleware with proper headers for Game Engines (Unity/Godot)
+app.use('/games', express.static(GAMES_FOLDER, {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.br')) {
+            res.setHeader('Content-Encoding', 'br');
+            if (filePath.includes('.wasm')) res.setHeader('Content-Type', 'application/wasm');
+            if (filePath.includes('.js')) res.setHeader('Content-Type', 'application/javascript');
+            if (filePath.includes('.data')) res.setHeader('Content-Type', 'application/octet-stream');
+        } else if (filePath.endsWith('.gz')) {
+            res.setHeader('Content-Encoding', 'gzip');
+            if (filePath.includes('.wasm')) res.setHeader('Content-Type', 'application/wasm');
+            if (filePath.includes('.js')) res.setHeader('Content-Type', 'application/javascript');
+            if (filePath.includes('.data')) res.setHeader('Content-Type', 'application/octet-stream');
+        } else if (filePath.endsWith('.wasm')) {
+            res.setHeader('Content-Type', 'application/wasm');
+        }
+    }
+}));
 
 app.post('/upload', upload.single('gameFile'), async (req, res) => {
     try {
@@ -180,6 +196,7 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
         fs.mkdirSync(localGamePath);
 
         let indexHtmlPath = null;
+        let indexInfo = null;
         let storageFileRef = ref(storage, `games/${gameId}.zip`);
 
         if (file.originalname.toLowerCase().endsWith('.zip')) {
