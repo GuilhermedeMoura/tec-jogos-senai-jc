@@ -3,7 +3,47 @@ const gamesContainer = document.getElementById('gamesContainer');
 const emptyState = document.getElementById('emptyState');
 const noResultsState = document.getElementById('noResultsState');
 
+// Dados compartilhados entre formulário de upload e barra de filtros
+const schoolsData = {
+    'Goiania': ['Colégio Estadual Nazir Safatle'],
+    'Trindade': ['CEPI Abrão Manoel da Costa', 'Colégio Estadual José Ludovico de Almeida']
+};
+
 document.addEventListener('DOMContentLoaded', loadGames);
+
+// --- LÓGICA DO MODAL DE UPLOAD ---
+const citySelect = document.getElementById('citySelect');
+const schoolSelect = document.getElementById('schoolSelect');
+const classSelect = document.getElementById('classSelect');
+
+if (citySelect && schoolSelect && classSelect) {
+    citySelect.addEventListener('change', () => {
+        schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
+        classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+
+        const city = citySelect.value;
+        if (city && schoolsData[city]) {
+            schoolSelect.innerHTML = '<option value="">Selecione...</option>';
+            schoolsData[city].forEach(school => {
+                const opt = document.createElement('option');
+                opt.value = school;
+                opt.textContent = school;
+                schoolSelect.appendChild(opt);
+            });
+        }
+    });
+
+    schoolSelect.addEventListener('change', () => {
+        classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+        if (schoolSelect.value !== '') {
+            classSelect.innerHTML = `
+            <option value="">Selecione...</option>
+            <option value="1° Ano">1° Ano</option>
+            <option value="2° Ano">2° Ano</option>
+            `;
+        }
+    });
+}
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -227,11 +267,6 @@ document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
 });
 
 // --- SISTEMA DE FILTROS E PESQUISA ---
-
-const schoolsData = {
-    'Goiania': ['Colégio Estadual Nazir Safatle'],
-    'Trindade': ['CEPI Abrão Manoel da Costa', 'Colégio Estadual José Ludovico de Almeida']
-};
 
 const searchInput = document.getElementById('searchInput');
 const filterCity = document.getElementById('filterCity');

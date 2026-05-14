@@ -143,12 +143,12 @@ app.use('/games/:gameId', async (req, res, next) => {
         
         // Fallback for old games that might still be pointing to an external URL
         try {
-            const q = query(collection(db, "games"), where("id", "==", gameId));
+            const q = query(collection(db, "games"));
             const snapshot = await getDocs(q);
             let fallbackUrl = null;
             snapshot.forEach((docSnap) => {
                 const data = docSnap.data();
-                if (data.url && data.url.startsWith('http')) {
+                if (String(data.id) === String(gameId) && data.url && data.url.startsWith('http')) {
                     fallbackUrl = data.url;
                 }
             });
@@ -281,7 +281,7 @@ app.delete('/api/games/:gameId', async (req, res) => {
         let targetDocId = null;
         
         snapshot.forEach((docSnap) => {
-            if (docSnap.data().id === gameId) {
+            if (String(docSnap.data().id) === String(gameId)) {
                 targetDocId = docSnap.id;
             }
         });
