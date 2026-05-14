@@ -160,7 +160,7 @@ gamesContainer.addEventListener('click', async (e) => {
         playGame(url, title);
     } else if (deleteBtn) {
         const gameId = deleteBtn.dataset.gameId;
-        // await deleteGame(gameId); 
+        await deleteGame(gameId); 
     }
 });
 
@@ -182,11 +182,56 @@ function playGame(url, title) {
 
 window.playGame = playGame;
 
+async function deleteGame(gameId) {
+    if (!confirm('Tem certeza que deseja deletar este jogo?')) return;
+
+    try {
+        const deleteBtn = document.querySelector(`.delete-btn[data-game-id="${gameId}"]`);
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deletando...';
+        }
+
+        const response = await fetch('/api/games/' + gameId, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao deletar');
+        }
+
+        // Remover o elemento visualmente sem recarregar a página toda
+        const gameCard = document.getElementById(`game-${gameId}`);
+        if (gameCard) {
+            gameCard.remove();
+            applyFilters(); // Reaplicar filtros para lidar com a mensagem de estado vazio
+        }
+        
+    } catch (err) {
+        alert('Erro ao deletar: ' + err.message);
+        console.error(err);
+        
+        // Restaurar botão em caso de erro
+        const deleteBtn = document.querySelector(`.delete-btn[data-game-id="${gameId}"]`);
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Deletar';
+        }
+    }
+}
+window.deleteGame = deleteGame;
+
 document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
     document.getElementById('gameFrame').src = '';
 });
 
 // --- SISTEMA DE FILTROS E PESQUISA ---
+
+const schoolsData = {
+    'Goiania': ['Colégio Estadual Nazir Safatle'],
+    'Trindade': ['CEPI Abrão Manoel da Costa', 'Colégio Estadual José Ludovico de Almeida']
+};
 
 const searchInput = document.getElementById('searchInput');
 const filterCity = document.getElementById('filterCity');
@@ -261,7 +306,7 @@ function applyFilters() {
 
         // Exibir ou ocultar
         if (matchSearch && matchCity && matchSchool && matchYear) {
-            card.style.display = 'block';
+            card.style.display = '';
             visibleCount++;
         } else {
             card.style.display = 'none';
@@ -270,12 +315,16 @@ function applyFilters() {
 
     // Controle de estados vazios
     if (visibleCount === 0) {
-        noResultsState.classList.remove('d-none');
-        // Esconde o estado vazio original se tiver jogos, mas filtros não acharam nada
-        if (document.querySelectorAll('#gamesContainer .col').length > 0) {
+        const hasGames = document.querySelectorAll('#gamesContainer .col').length > 0;
+        if (hasGames) {
             emptyState.classList.add('d-none');
+            noResultsState.classList.remove('d-none');
+        } else {
+            emptyState.classList.remove('d-none');
+            noResultsState.classList.add('d-none');
         }
     } else {
+        emptyState.classList.add('d-none');
         noResultsState.classList.add('d-none');
     }
 }
