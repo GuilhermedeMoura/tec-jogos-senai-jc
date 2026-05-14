@@ -56,6 +56,49 @@
         <div class="d-flex justify-content-between align-items-center mb-5">
             <h2 class="fw-bold h4">Jogos Enviados</h2>
         </div>
+        <!-- Área de Filtros e Pesquisa -->
+        <div class="filters-bar">
+            <div class="row g-3">
+                <!-- Pesquisa por Aluno -->
+                <div class="col-md-4">
+                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno</label>
+                    <input type="text" id="searchInput" class="form-control form-control-clean"
+                        placeholder="Digite o nome...">
+                </div>
+                <!-- Filtro Cidade -->
+                <div class="col-md-2">
+                    <label for="filterCity" class="form-label">Cidade</label>
+                    <select id="filterCity" class="form-select form-control-clean">
+                        <option value="">Todas</option>
+                        <option value="Goiania">Goiânia</option>
+                        <option value="Trindade">Trindade</option>
+                    </select>
+                </div>
+                <!-- Filtro Escola -->
+                <div class="col-md-3">
+                    <label for="filterSchool" class="form-label">Escola</label>
+                    <select id="filterSchool" class="form-select form-control-clean">
+                        <option value="">Todas</option>
+                        <!-- Opções serão populadas via JS -->
+                    </select>
+                </div>
+                <!-- Filtro Ano -->
+                <div class="col-md-2">
+                    <label for="filterYear" class="form-label">Ano</label>
+                    <select id="filterYear" class="form-select form-control-clean">
+                        <option value="">Todos</option>
+                        <option value="1° Ano">1° Ano</option>
+                        <option value="2° Ano">2° Ano</option>
+                    </select>
+                </div>
+                <!-- Botão Limpar Filtros -->
+                <div class="col-md-1 d-flex align-items-end">
+                    <button id="clearFiltersBtn" class="btn btn-outline-light w-100" title="Limpar Filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <div id="gamesContainer" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
             <!-- Cards virão aqui -->

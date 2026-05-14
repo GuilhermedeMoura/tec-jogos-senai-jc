@@ -1,6 +1,7 @@
 const form = document.getElementById('gameForm');
 const gamesContainer = document.getElementById('gamesContainer');
 const emptyState = document.getElementById('emptyState');
+const noResultsState = document.getElementById('noResultsState');
 
 document.addEventListener('DOMContentLoaded', loadGames);
 
@@ -54,6 +55,8 @@ form.addEventListener('submit', async (e) => {
         // Reset form
         form.reset();
         document.getElementById('gameFile').value = '';
+        schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
+        classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
 
         // Close modal after 2 seconds
         setTimeout(() => {
@@ -83,11 +86,14 @@ async function loadGames() {
 
         if (games.length === 0) {
             emptyState.classList.remove('d-none');
+            noResultsState.classList.add('d-none');
         } else {
             emptyState.classList.add('d-none');
             games.forEach((game) => {
                 appendGame(game);
             });
+            // Aplica filtros após carregar (caso já tenha algo escrito)
+            applyFilters();
         }
     } catch (error) {
         console.error("Erro ao carregar jogos:", error);
@@ -97,10 +103,19 @@ async function loadGames() {
 function appendGame(game) {
     if (document.getElementById(`game-${game.id}`)) return;
 
+    // Adicionamos atributos data-* para filtragem fácil
     const card = `
     <div class="col" id="game-${game.id}">
         <div class="game-card-container position-relative">
-            <div class="game-card" data-game-id="${game.id}" data-game-url="${game.url}" data-game-title="${game.title}" style="cursor: pointer;">
+            <div class="game-card" 
+                 data-game-id="${game.id}" 
+                 data-game-url="${game.url}" 
+                 data-game-title="${game.title}" 
+                 data-author="${game.author}"
+                 data-city="${game.city}"
+                 data-school="${game.school}"
+                 data-year="${game.studentClass}"
+                 style="cursor: pointer;">
                 <div class="game-img-wrapper">
                     <img src="https://source.unsplash.com/600x400/?${game.category},game" class="game-img" alt="${game.title}" onerror="this.src='https://via.placeholder.com/600x400?text=${encodeURIComponent(game.title)}'">
                     <div class="game-card-overlay">
@@ -145,7 +160,7 @@ gamesContainer.addEventListener('click', async (e) => {
         playGame(url, title);
     } else if (deleteBtn) {
         const gameId = deleteBtn.dataset.gameId;
-        // await deleteGame(gameId); // Desabilitado
+        // await deleteGame(gameId); 
     }
 });
 
@@ -165,29 +180,102 @@ function playGame(url, title) {
     }
 }
 
-// async function deleteGame(gameId) {
-//     if (!confirm('Tem certeza que deseja deletar este jogo?')) return;
-
-//     try {
-//         const response = await fetch('/api/games/' + gameId, {
-//             method: 'DELETE'
-//         });
-
-//         if (!response.ok) {
-//             const errorData = await response.json();
-//             throw new Error(errorData.error || 'Erro ao deletar');
-//         }
-
-//         await loadGames();
-//     } catch (err) {
-//         alert('Erro ao deletar: ' + err.message);
-//         console.error(err);
-//     }
-// }
-
 window.playGame = playGame;
-// window.deleteGame = deleteGame;
 
 document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
     document.getElementById('gameFrame').src = '';
 });
+
+// --- SISTEMA DE FILTROS E PESQUISA ---
+
+const searchInput = document.getElementById('searchInput');
+const filterCity = document.getElementById('filterCity');
+const filterSchool = document.getElementById('filterSchool');
+const filterYear = document.getElementById('filterYear');
+const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+// Atualiza lista de escolas no filtro de busca quando a cidade muda
+filterCity.addEventListener('change', () => {
+    const city = filterCity.value;
+    filterSchool.innerHTML = '<option value="">Todas</option>';
+
+    if (city && schoolsData[city]) {
+        schoolsData[city].forEach(school => {
+            const opt = document.createElement('option');
+            opt.value = school;
+            opt.textContent = school;
+            filterSchool.appendChild(opt);
+        });
+    }
+    applyFilters();
+});
+
+// Event listeners para disparar a filtragem
+searchInput.addEventListener('input', applyFilters);
+filterSchool.addEventListener('change', applyFilters);
+filterYear.addEventListener('change', applyFilters);
+
+// Botão limpar filtros
+clearFiltersBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    filterCity.value = '';
+    filterSchool.innerHTML = '<option value="">Todas</option>';
+    filterYear.value = '';
+    applyFilters();
+});
+
+function applyFilters() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const cityValue = filterCity.value;
+    const schoolValue = filterSchool.value;
+    const yearValue = filterYear.value;
+
+    const cards = document.querySelectorAll('#gamesContainer .col');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+        const gameCard = card.querySelector('.game-card');
+
+        // Pegando valores dos data attributes
+        const author = (gameCard.dataset.author || '').toLowerCase();
+        const title = (gameCard.dataset.gameTitle || '').toLowerCase();
+        const city = gameCard.dataset.city || '';
+        const school = gameCard.dataset.school || '';
+        const year = gameCard.dataset.year || '';
+
+        // Lógica de verificação
+        let matchSearch = true;
+        let matchCity = true;
+        let matchSchool = true;
+        let matchYear = true;
+
+        // Filtro de pesquisa (Aluno ou Título)
+        if (searchTerm) {
+            matchSearch = author.includes(searchTerm) || title.includes(searchTerm);
+        }
+
+        // Filtros exatos
+        if (cityValue && city !== cityValue) matchCity = false;
+        if (schoolValue && school !== schoolValue) matchSchool = false;
+        if (yearValue && year !== yearValue) matchYear = false;
+
+        // Exibir ou ocultar
+        if (matchSearch && matchCity && matchSchool && matchYear) {
+            card.style.display = 'block';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Controle de estados vazios
+    if (visibleCount === 0) {
+        noResultsState.classList.remove('d-none');
+        // Esconde o estado vazio original se tiver jogos, mas filtros não acharam nada
+        if (document.querySelectorAll('#gamesContainer .col').length > 0) {
+            emptyState.classList.add('d-none');
+        }
+    } else {
+        noResultsState.classList.add('d-none');
+    }
+}
