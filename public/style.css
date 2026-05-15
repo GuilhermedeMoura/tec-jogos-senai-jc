@@ -45,7 +45,8 @@
 
  .btn-modern-primary:hover {
      transform: translateY(-2px);
-     color: #ffffff;
+     background: #ffffff;
+     color: #f25424;
  }
 
  .hero-section {
