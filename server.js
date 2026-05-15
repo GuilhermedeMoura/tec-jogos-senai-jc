@@ -35,11 +35,9 @@ const PORT = process.env.PORT || 3000;
 
 const UPLOADS_FOLDER = 'uploads_zips';
 const GAMES_FOLDER = 'public/games';
-const COVERS_FOLDER = 'public/covers';
 
 if (!fs.existsSync(UPLOADS_FOLDER)) fs.mkdirSync(UPLOADS_FOLDER);
 if (!fs.existsSync(GAMES_FOLDER)) fs.mkdirSync(GAMES_FOLDER, { recursive: true });
-if (!fs.existsSync(COVERS_FOLDER)) fs.mkdirSync(COVERS_FOLDER, { recursive: true });
 
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -59,9 +57,6 @@ app.use('/games', (req, res, next) => {
     res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
     next();
 });
-
-// Serve covers statically (before other middleware that might redirect)
-app.use('/covers', express.static(COVERS_FOLDER));
 
 app.use(express.static('public'));
 
@@ -309,8 +304,24 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
             }
         }
 
-        // Determina URL da imagem de capa
-        const coverUrl = coverFile ? `/covers/${coverFile.filename}` : null;
+        // Faz upload da imagem de capa para o Firebase Storage e obtém URL permanente
+        let coverUrl = null;
+        if (coverFile) {
+            try {
+                const coverExt = path.extname(coverFile.originalname) || '.jpg';
+                const coverStorageRef = ref(storage, `covers/${gameId}${coverExt}`);
+                const coverBuffer = fs.readFileSync(coverFile.path);
+                const coverMime = coverFile.mimetype || 'image/jpeg';
+                await uploadBytes(coverStorageRef, coverBuffer, { contentType: coverMime });
+                coverUrl = await getDownloadURL(coverStorageRef);
+                fs.unlinkSync(coverFile.path);
+                console.log(`[Storage] Cover image uploaded for game ${gameId}: ${coverUrl.substring(0, 60)}...`);
+            } catch (coverErr) {
+                console.error('[Error] Failed to upload cover image to Firebase Storage:', coverErr.message);
+                // coverUrl permanece null — sem capa é aceitável
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            }
+        }
 
         const gameUrl = `/games/${gameId}/index.html`;
         
