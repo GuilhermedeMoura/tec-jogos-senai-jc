@@ -158,7 +158,7 @@
      transition: transform 0.3s;
  }
 
- .btn-play-hover {
+ .btn-play-hover:hover {
      background: #0c4da1;
 
  }
