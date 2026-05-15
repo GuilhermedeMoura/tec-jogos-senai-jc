@@ -41,12 +41,15 @@ if (!fs.existsSync(GAMES_FOLDER)) fs.mkdirSync(GAMES_FOLDER, { recursive: true }
 
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        if (file.fieldname === 'coverImage') return cb(null, COVERS_FOLDER);
+        if (file.fieldname === 'coverImage') return cb(null, UPLOADS_FOLDER);
         cb(null, UPLOADS_FOLDER);
     },
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
-const upload = multer({ storage: diskStorage });
+const upload = multer({
+    storage: diskStorage,
+    limits: { fileSize: 200 * 1024 * 1024 } // 200 MB
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -457,6 +460,19 @@ app.delete('/api/games/:gameId', async (req, res) => {
         console.error('[Error] Failed to delete game:', error.message);
         res.status(500).json({ error: 'Erro ao deletar o jogo: ' + error.message });
     }
+});
+
+// Middleware global de erros — garante que qualquer crash retorne JSON (não HTML)
+app.use((err, req, res, next) => {
+    // Erros do multer (ex: arquivo muito grande)
+    if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'Arquivo muito grande. O limite é 200 MB.' });
+    }
+    if (err.name === 'MulterError') {
+        return res.status(400).json({ error: `Erro no upload: ${err.message}` });
+    }
+    console.error('[Unhandled Error]', err);
+    res.status(500).json({ error: err.message || 'Erro interno do servidor' });
 });
 
 app.listen(PORT, () => {

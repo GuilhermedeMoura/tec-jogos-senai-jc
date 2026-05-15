@@ -113,8 +113,15 @@ form.addEventListener('submit', async (e) => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro no envio');
+            let errorMsg = `Erro ${response.status}: ${response.statusText || 'Falha no servidor'}`;
+            try {
+                const ct = response.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                }
+            } catch (_) { /* ignora falha ao parsear o corpo do erro */ }
+            throw new Error(errorMsg);
         }
 
         status.innerText = "Jogo enviado com sucesso!";
