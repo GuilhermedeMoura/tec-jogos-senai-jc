@@ -108,7 +108,7 @@
      transform: translateY(-10px);
      border-color: rgba(242, 84, 36, 0.5);
      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-     background: #f25424;
+     background: #ffffff;
  }
 
  .game-img-wrapper {
@@ -156,6 +156,11 @@
      font-weight: 600;
      transform: translateY(20px);
      transition: transform 0.3s;
+ }
+
+ .btn-play-hover {
+     background: #0c4da1;
+
  }
 
  .game-card:hover .btn-play-hover {
