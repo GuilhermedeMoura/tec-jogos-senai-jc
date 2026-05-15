@@ -35,12 +35,17 @@ const PORT = process.env.PORT || 3000;
 
 const UPLOADS_FOLDER = 'uploads_zips';
 const GAMES_FOLDER = 'public/games';
+const COVERS_FOLDER = 'public/covers';
 
 if (!fs.existsSync(UPLOADS_FOLDER)) fs.mkdirSync(UPLOADS_FOLDER);
 if (!fs.existsSync(GAMES_FOLDER)) fs.mkdirSync(GAMES_FOLDER, { recursive: true });
+if (!fs.existsSync(COVERS_FOLDER)) fs.mkdirSync(COVERS_FOLDER, { recursive: true });
 
 const diskStorage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOADS_FOLDER),
+    destination: (req, file, cb) => {
+        if (file.fieldname === 'coverImage') return cb(null, COVERS_FOLDER);
+        cb(null, UPLOADS_FOLDER);
+    },
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage: diskStorage });
@@ -54,6 +59,9 @@ app.use('/games', (req, res, next) => {
     res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
     next();
 });
+
+// Serve covers statically (before other middleware that might redirect)
+app.use('/covers', express.static(COVERS_FOLDER));
 
 app.use(express.static('public'));
 
@@ -225,10 +233,11 @@ app.use('/games', express.static(GAMES_FOLDER, {
     }
 }));
 
-app.post('/upload', upload.single('gameFile'), async (req, res) => {
+app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
     try {
         const { gameTitle, authorName, gameCategory, city, school, studentClass } = req.body;
-        const file = req.file;
+        const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
+        const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
         if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
@@ -300,6 +309,9 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
             }
         }
 
+        // Determina URL da imagem de capa
+        const coverUrl = coverFile ? `/covers/${coverFile.filename}` : null;
+
         const gameUrl = `/games/${gameId}/index.html`;
         
         // Save metadata to Firestore with comprehensive info
@@ -313,6 +325,7 @@ app.post('/upload', upload.single('gameFile'), async (req, res) => {
             school: school || null,
             studentClass: studentClass || null,
             url: gameUrl,
+            coverUrl: coverUrl,
             storageUrl: `gs://tec-jogos-senai-jc.firebasestorage.app/games/${gameId}.zip`,
             uploadedToStorage: uploadedToStorage,
             timestamp: Date.now(),

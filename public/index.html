@@ -178,10 +178,29 @@
                                         <option value="">Selecione a escola primeiro</option>
                                     </select>
                                 </div>
-                                <div class="mb-4">
+                                <div class="mb-3">
                                     <label class="form-label text-secundary small">Arquivo ZIP ou HTML</label>
                                     <input type="file" name="gameFile" class="form-control form-control-clean"
                                         id="gameFile" accept=".zip,.html" required>
+                                </div>
+                                <!-- Imagem de Capa (Opcional) -->
+                                <div class="mb-4">
+                                    <label class="form-label text-secundary small">
+                                        <i class="bi bi-image me-1"></i> Imagem de Capa
+                                        <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Opcional</span>
+                                    </label>
+                                    <input type="file" name="coverImage" class="form-control form-control-clean"
+                                        id="coverImage" accept="image/*">
+                                    <!-- Preview da imagem -->
+                                    <div id="coverPreviewWrapper" class="mt-2 d-none">
+                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="coverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                            <button type="button" id="removeCoverBtn" title="Remover imagem"
+                                                style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border:none;color:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Publicar</button>

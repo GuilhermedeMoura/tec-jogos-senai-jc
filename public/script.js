@@ -45,6 +45,32 @@ if (citySelect && schoolSelect && classSelect) {
     });
 }
 
+// --- PREVIEW DA IMAGEM DE CAPA ---
+const coverImageInput = document.getElementById('coverImage');
+const coverPreviewWrapper = document.getElementById('coverPreviewWrapper');
+const coverPreview = document.getElementById('coverPreview');
+const removeCoverBtn = document.getElementById('removeCoverBtn');
+
+if (coverImageInput) {
+    coverImageInput.addEventListener('change', () => {
+        const file = coverImageInput.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                coverPreview.src = ev.target.result;
+                coverPreviewWrapper.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeCoverBtn.addEventListener('click', () => {
+        coverImageInput.value = '';
+        coverPreview.src = '';
+        coverPreviewWrapper.classList.add('d-none');
+    });
+}
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -60,6 +86,7 @@ form.addEventListener('submit', async (e) => {
     const school = document.getElementById('schoolSelect').value;
     const studentClass = document.getElementById('classSelect').value;
     const gameFile = document.getElementById('gameFile').files[0];
+    const coverFile = document.getElementById('coverImage').files[0] || null;
 
     if (!gameTitle || !authorName || !gameCategory || !city || !school || !studentClass || !gameFile) {
         status.innerText = "Preencha todos os campos e selecione um arquivo.";
@@ -78,6 +105,7 @@ form.addEventListener('submit', async (e) => {
         formData.append('school', school);
         formData.append('studentClass', studentClass);
         formData.append('gameFile', gameFile);
+        if (coverFile) formData.append('coverImage', coverFile);
 
         const response = await fetch('/upload', {
             method: 'POST',
@@ -95,6 +123,9 @@ form.addEventListener('submit', async (e) => {
         // Reset form
         form.reset();
         document.getElementById('gameFile').value = '';
+        document.getElementById('coverImage').value = '';
+        coverPreview.src = '';
+        coverPreviewWrapper.classList.add('d-none');
         schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
         classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
 
@@ -159,7 +190,7 @@ function appendGame(game) {
                  data-year="${game.studentClass}"
                  style="cursor: pointer;">
                 <div class="game-img-wrapper">
-                    <img src="https://source.unsplash.com/600x400/?${game.category},game" class="game-img" alt="${game.title}" onerror="this.src='https://via.placeholder.com/600x400?text=${encodeURIComponent(game.title)}'">
+                    <img src="${game.coverUrl || `https://source.unsplash.com/600x400/?${game.category},game`}" class="game-img" alt="${game.title}" onerror="this.src='https://via.placeholder.com/600x400?text=${encodeURIComponent(game.title)}'">
                     <div class="game-card-overlay">
                         <button class="btn btn-play-hover">
                             <i class="bi bi-controller me-2"></i> Jogar
