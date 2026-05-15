@@ -358,21 +358,45 @@ app.get('/api/games', async (req, res) => {
     try {
         const q = query(collection(db, "games"), orderBy("timestamp", "desc"));
         const snapshot = await getDocs(q);
-        const games = [];
-        
+
+        const rawGames = [];
         snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            games.push({
-                docId: docSnap.id,
-                ...data
-            });
+            rawGames.push({ _firestoreDocId: docSnap.id, ...docSnap.data() });
         });
-        
-        console.log(`[API] Loaded ${games.length} games from Firestore`);
-        res.json(games);
+
+        // Verifica em paralelo quais jogos ainda existem no Firebase Storage
+        const results = await Promise.allSettled(
+            rawGames.map(async (game) => {
+                const gameId = game.id || game.docId;
+                try {
+                    const storageRef = ref(storage, `games/${gameId}.zip`);
+                    await getDownloadURL(storageRef); // lança erro se não existir
+                    return game; // arquivo existe → jogo válido
+                } catch (err) {
+                    // Arquivo não existe no Storage → remove do Firestore automaticamente
+                    console.warn(`[Cleanup] Game ${gameId} not found in Storage. Removing from Firestore...`);
+                    try {
+                        await deleteDoc(doc(db, "games", game._firestoreDocId));
+                        console.log(`[Cleanup] Deleted orphaned Firestore doc: ${game._firestoreDocId}`);
+                    } catch (deleteErr) {
+                        console.error(`[Cleanup] Failed to delete Firestore doc ${game._firestoreDocId}:`, deleteErr.message);
+                    }
+                    return null; // sinaliza que deve ser filtrado
+                }
+            })
+        );
+
+        const validGames = results
+            .filter(r => r.status === 'fulfilled' && r.value !== null)
+            .map(r => {
+                const { _firestoreDocId, ...game } = r.value;
+                return game;
+            });
+
+        console.log(`[API] ${validGames.length}/${rawGames.length} games are valid (${rawGames.length - validGames.length} orphans removed)`);
+        res.json(validGames);
     } catch (error) {
         console.error('[Error] Failed to load games from Firestore:', error.message);
-        // Fallback to empty array to not crash the frontend
         res.status(200).json([]);
     }
 });
