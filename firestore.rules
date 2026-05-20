@@ -4,5 +4,8 @@ service cloud.firestore {
     match /games/{gameId} {
       allow read, write: if true;
     }
+    match /sites/{siteId} {
+      allow read, write: if true;
+    }
   }
 }
