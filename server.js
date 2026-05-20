@@ -35,9 +35,11 @@ const PORT = process.env.PORT || 3000;
 
 const UPLOADS_FOLDER = 'uploads_zips';
 const GAMES_FOLDER = 'public/games';
+const SITES_FOLDER = 'public/sites';
 
 if (!fs.existsSync(UPLOADS_FOLDER)) fs.mkdirSync(UPLOADS_FOLDER);
 if (!fs.existsSync(GAMES_FOLDER)) fs.mkdirSync(GAMES_FOLDER, { recursive: true });
+if (!fs.existsSync(SITES_FOLDER)) fs.mkdirSync(SITES_FOLDER, { recursive: true });
 
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -231,9 +233,59 @@ app.use('/games', express.static(GAMES_FOLDER, {
     }
 }));
 
+// Smart Middleware to Stream Sites from Firebase with Local Caching
+app.use('/sites/:siteId', async (req, res, next) => {
+    const siteId = req.params.siteId;
+    const localSitePath = path.join(SITES_FOLDER, siteId);
+
+    if (fs.existsSync(localSitePath)) {
+        console.log(`[Cache Hit] Site ${siteId} served from local cache`);
+        return next();
+    }
+
+    console.log(`[Cache Miss] Site ${siteId} not found locally. Streaming from Firebase...`);
+    try {
+        const storageRef = ref(storage, `sites/${siteId}.zip`);
+        const downloadUrl = await getDownloadURL(storageRef);
+
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error(`Failed to download from Firebase: ${response.statusText}`);
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        try {
+            fs.mkdirSync(localSitePath, { recursive: true });
+            const zip = new AdmZip(buffer);
+            zip.extractAllTo(localSitePath, true);
+
+            let indexInfo = findIndexHtml(localSitePath);
+            if (indexInfo) {
+                reorganizeGameFiles(localSitePath, indexInfo.dirPath);
+                const targetHtml = path.join(localSitePath, 'index.html');
+                const originalHtml = path.join(localSitePath, indexInfo.fileName);
+                if (indexInfo.fileName !== 'index.html' && fs.existsSync(originalHtml)) {
+                    fs.renameSync(originalHtml, targetHtml);
+                }
+            }
+            console.log(`[Cache] Site ${siteId} cached locally`);
+        } catch (cacheErr) {
+            console.warn(`[Cache] Failed to cache site ${siteId} (non-critical):`, cacheErr.message);
+        }
+
+        next();
+    } catch (error) {
+        console.error(`[Error] Failed to fetch site ${siteId} from Firebase:`, error.message);
+        res.status(404).json({ error: 'Site não encontrado', details: error.message });
+    }
+});
+
+// Serve sites statically
+app.use('/sites', express.static(SITES_FOLDER));
+
 app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
     try {
-        const { gameTitle, authorName, gameCategory, city, school, studentClass } = req.body;
+        const { gameTitle, authorName, gameCategory, city, school, studentClass, teacher } = req.body;
         const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
         const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
@@ -338,6 +390,7 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
             city: city || null,
             school: school || null,
             studentClass: studentClass || null,
+            teacher: teacher || null,
             url: gameUrl,
             coverUrl: coverUrl,
             storageUrl: `gs://tec-jogos-senai-jc.firebasestorage.app/games/${gameId}.zip`,
@@ -401,6 +454,217 @@ app.get('/api/games', async (req, res) => {
     } catch (error) {
         console.error('[Error] Failed to load games from Firestore:', error.message);
         res.status(200).json([]);
+    }
+});
+
+// ============================================================
+// SITES ROUTES
+// ============================================================
+
+app.post('/upload-site', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+    try {
+        const { gameTitle, authorName, gameCategory, city, school, studentClass, teacher } = req.body;
+        const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
+        const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
+
+        if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+
+        const siteId = Date.now().toString();
+        const localSitePath = path.join(SITES_FOLDER, siteId);
+
+        try {
+            fs.mkdirSync(localSitePath, { recursive: true });
+        } catch (err) {
+            console.warn('[Warning] Could not create local site folder (non-critical):', err.message);
+        }
+
+        let indexHtmlPath = null;
+        let indexInfo = null;
+        let storageFileRef = ref(storage, `sites/${siteId}.zip`);
+        let uploadedToStorage = false;
+
+        try {
+            if (file.originalname.toLowerCase().endsWith('.zip')) {
+                const zip = new AdmZip(file.path);
+                zip.extractAllTo(localSitePath, true);
+                indexInfo = findIndexHtml(localSitePath);
+                if (indexInfo) indexHtmlPath = indexInfo.dirPath;
+
+                const fileBuffer = fs.readFileSync(file.path);
+                await uploadBytes(storageFileRef, fileBuffer, { contentType: 'application/zip' });
+                uploadedToStorage = true;
+                console.log(`[Storage] Uploaded site ZIP for site ${siteId}`);
+
+            } else if (file.originalname.toLowerCase().endsWith('.html')) {
+                fs.copyFileSync(file.path, path.join(localSitePath, 'index.html'));
+                indexHtmlPath = localSitePath;
+
+                const zipOut = new AdmZip();
+                zipOut.addLocalFile(file.path);
+                const outBuffer = zipOut.toBuffer();
+                await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
+                uploadedToStorage = true;
+                console.log(`[Storage] Uploaded site HTML as ZIP for site ${siteId}`);
+            } else {
+                fs.rmSync(localSitePath, { recursive: true, force: true });
+                fs.unlinkSync(file.path);
+                return res.status(400).json({ error: 'Envie um arquivo .zip ou .html' });
+            }
+        } catch (uploadErr) {
+            console.error('[Error] Failed to upload site to Firebase Storage:', uploadErr.message);
+        }
+
+        fs.unlinkSync(file.path);
+
+        if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, indexInfo ? indexInfo.fileName : 'index.html'))) {
+            fs.rmSync(localSitePath, { recursive: true, force: true });
+            return res.status(400).json({ error: 'Arquivo index.html não encontrado no ZIP.' });
+        }
+
+        reorganizeGameFiles(localSitePath, indexHtmlPath);
+
+        if (indexInfo && indexInfo.fileName !== 'index.html') {
+            const originalHtml = path.join(localSitePath, indexInfo.fileName);
+            const targetHtml = path.join(localSitePath, 'index.html');
+            if (fs.existsSync(originalHtml)) fs.renameSync(originalHtml, targetHtml);
+        }
+
+        let coverUrl = null;
+        if (coverFile) {
+            try {
+                const coverExt = path.extname(coverFile.originalname) || '.jpg';
+                const coverStorageRef = ref(storage, `covers/sites/${siteId}${coverExt}`);
+                const coverBuffer = fs.readFileSync(coverFile.path);
+                const coverMime = coverFile.mimetype || 'image/jpeg';
+                await uploadBytes(coverStorageRef, coverBuffer, { contentType: coverMime });
+                coverUrl = await getDownloadURL(coverStorageRef);
+                fs.unlinkSync(coverFile.path);
+                console.log(`[Storage] Cover image uploaded for site ${siteId}`);
+            } catch (coverErr) {
+                console.error('[Error] Failed to upload site cover:', coverErr.message);
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            }
+        }
+
+        const siteUrl = `/sites/${siteId}/index.html`;
+
+        const newSite = {
+            docId: siteId,
+            id: siteId,
+            title: gameTitle,
+            author: authorName,
+            category: gameCategory,
+            city: city || null,
+            school: school || null,
+            studentClass: studentClass || null,
+            teacher: teacher || null,
+            url: siteUrl,
+            coverUrl: coverUrl,
+            storageUrl: `gs://tec-jogos-senai-jc.firebasestorage.app/sites/${siteId}.zip`,
+            uploadedToStorage: uploadedToStorage,
+            timestamp: Date.now(),
+            createdAt: new Date().toISOString()
+        };
+
+        const docRef = await addDoc(collection(db, "sites"), newSite);
+        console.log(`[Firestore] Site saved with docId: ${docRef.id}, siteId: ${siteId}`);
+
+        res.status(200).json({ message: 'Site enviado com sucesso!', site: { ...newSite, docId: docRef.id } });
+    } catch (error) {
+        console.error('[Error] Site upload failed:', error);
+        res.status(500).json({ error: 'Erro ao processar o site: ' + error.message });
+    }
+});
+
+app.get('/api/sites', async (req, res) => {
+    try {
+        const q = query(collection(db, "sites"), orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+
+        const rawSites = [];
+        snapshot.forEach((docSnap) => {
+            rawSites.push({ _firestoreDocId: docSnap.id, ...docSnap.data() });
+        });
+
+        // Verifica em paralelo quais sites ainda existem no Firebase Storage
+        const results = await Promise.allSettled(
+            rawSites.map(async (site) => {
+                const siteId = site.id || site.docId;
+                try {
+                    const storageRef = ref(storage, `sites/${siteId}.zip`);
+                    await getDownloadURL(storageRef);
+                    return site;
+                } catch (err) {
+                    console.warn(`[Cleanup] Site ${siteId} not found in Storage. Removing from Firestore...`);
+                    try {
+                        await deleteDoc(doc(db, "sites", site._firestoreDocId));
+                        console.log(`[Cleanup] Deleted orphaned site Firestore doc: ${site._firestoreDocId}`);
+                    } catch (deleteErr) {
+                        console.error(`[Cleanup] Failed to delete site Firestore doc:`, deleteErr.message);
+                    }
+                    return null;
+                }
+            })
+        );
+
+        const validSites = results
+            .filter(r => r.status === 'fulfilled' && r.value !== null)
+            .map(r => {
+                const { _firestoreDocId, ...site } = r.value;
+                return site;
+            });
+
+        console.log(`[API] ${validSites.length}/${rawSites.length} sites are valid`);
+        res.json(validSites);
+    } catch (error) {
+        console.error('[Error] Failed to load sites from Firestore:', error.message);
+        res.status(200).json([]);
+    }
+});
+
+app.delete('/api/sites/:siteId', async (req, res) => {
+    try {
+        const siteId = req.params.siteId;
+        console.log(`[Delete] Attempting to delete site: ${siteId}`);
+
+        const q = query(collection(db, "sites"));
+        const snapshot = await getDocs(q);
+        let targetDocId = null;
+        let siteDataId = null;
+
+        snapshot.forEach((docSnap) => {
+            if (docSnap.id === siteId || String(docSnap.data().id) === String(siteId)) {
+                targetDocId = docSnap.id;
+                siteDataId = docSnap.data().id;
+            }
+        });
+
+        if (!targetDocId) return res.status(404).json({ error: 'Site não encontrado' });
+
+        await deleteDoc(doc(db, "sites", targetDocId));
+
+        try {
+            const zipNameId = siteDataId || siteId;
+            if (zipNameId && zipNameId !== "undefined") {
+                const storageRef = ref(storage, `sites/${zipNameId}.zip`);
+                await deleteObject(storageRef);
+            }
+        } catch (e) {
+            console.warn('[Delete] Site file missing in storage (non-critical):', e.message);
+        }
+
+        const localCacheId = siteDataId || siteId;
+        if (localCacheId && localCacheId !== "undefined") {
+            const localSitePath = path.join(SITES_FOLDER, localCacheId);
+            if (fs.existsSync(localSitePath)) {
+                fs.rmSync(localSitePath, { recursive: true, force: true });
+            }
+        }
+
+        res.status(200).json({ message: 'Site deletado com sucesso!' });
+    } catch (error) {
+        console.error('[Error] Failed to delete site:', error.message);
+        res.status(500).json({ error: 'Erro ao deletar o site: ' + error.message });
     }
 });
 

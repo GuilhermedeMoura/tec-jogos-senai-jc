@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Showcase - Senai JC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top glass-nav">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-4" href="/">
+                <span class="text-gradient">Tec Senai </span>Jardim Colorado
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/" class="nav-link text-light opacity-75"><i class="bi bi-joystick me-1"></i>Jogos</a>
+                <a href="/sites.html" class="nav-link text-light fw-semibold"><i class="bi bi-code-slash me-1"></i>Sites</a>
+                <button class="btn btn-modern-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-upload"></i> Enviar Site
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="hero-section d-flex align-items-center">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <span class="badge badge-featured mb-3">PROJETOS WEB</span>
+                    <h1 class="display-2 fw-bold mb-3">Sites dos <br><span class="text-gradient">Alunos</span></h1>
+                    <p class="lead text-white-50 mb-4">Faça upload do seu site em ZIP ou HTML e veja aparecer na vitrine
+                        instantaneamente. Projetos desenvolvidos com HTML, CSS, JavaScript e Bootstrap.</p>
+                    <a href="#gallery" class="btn btn-modern-primary btn-lg px-5 py-3">
+                        Ver Sites <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+                <div class="col-lg-6 d-none d-lg-block text-center">
+                    <div class="hero-shape"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Galeria -->
+    <main class="container-fluid px-4 px-md-5 py-6" id="gallery">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <h2 class="fw-bold h4">Sites Enviados</h2>
+        </div>
+        <!-- Área de Filtros e Pesquisa -->
+        <div class="filters-bar">
+            <div class="row g-3">
+                <!-- Pesquisa por Aluno -->
+                <div class="col-md-4">
+                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno</label>
+                    <input type="text" id="searchInput" class="form-control form-control-clean"
+                        placeholder="Digite o nome...">
+                </div>
+                <!-- Filtro Cidade -->
+                <div class="col-md-2">
+                    <label for="filterCity" class="form-label">Cidade</label>
+                    <select id="filterCity" class="form-select form-control-clean">
+                        <option value="">Todas</option>
+                        <option value="Goiania">Goiânia</option>
+                        <option value="Trindade">Trindade</option>
+                    </select>
+                </div>
+                <!-- Filtro Escola -->
+                <div class="col-md-3">
+                    <label for="filterSchool" class="form-label">Escola</label>
+                    <select id="filterSchool" class="form-select form-control-clean">
+                        <option value="">Todas</option>
+                        <!-- Opções serão populadas via JS -->
+                    </select>
+                </div>
+                <!-- Filtro Ano -->
+                <div class="col-md-2">
+                    <label for="filterYear" class="form-label">Ano</label>
+                    <select id="filterYear" class="form-select form-control-clean">
+                        <option value="">Todos</option>
+                        <option value="1° Ano">1° Ano</option>
+                        <option value="2° Ano">2° Ano</option>
+                        <option value="3° Ano">3° Ano</option>
+                    </select>
+                </div>
+                <!-- Botão Limpar Filtros -->
+                <div class="col-md-1 d-flex align-items-end">
+                    <button id="clearFiltersBtn" class="btn btn-outline-light w-100" title="Limpar Filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="gamesContainer" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            <!-- Cards virão aqui -->
+        </div>
+
+        <div id="emptyState" class="text-center py-5">
+            <i class="bi bi-code-slash display-1 text-muted"></i>
+            <h3 class="mt-3">Nenhum site enviado</h3>
+            <p class="text-muted">Seja o primeiro a enviar seu projeto!</p>
+        </div>
+
+        <div id="noResultsState" class="text-center py-5 d-none">
+            <i class="bi bi-search display-1 text-muted"></i>
+            <h3 class="mt-3">Nenhum resultado encontrado</h3>
+            <p class="text-muted">Tente ajustar os filtros ou os termos da pesquisa.</p>
+        </div>
+    </main>
+
+    <!-- Modal Upload -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-clean">
+                <div class="modal-body p-5">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4"
+                        data-bs-dismiss="modal"></button>
+                    <div class="row">
+                        <div
+                            class="col-md-5 d-flex align-items-center justify-content-center bg-modal-side rounded-start">
+                            <div class="text-center">
+                                <i class="bi bi-file-earmark-code display-3 text-gradient mb-3"></i>
+                                <h5>Upload de Site</h5>
+                                <p class="small text-white-50">Envie o arquivo .zip ou .html.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-7 p-4">
+                            <h3 class="mb-4 fw-bold">Novo Site</h3>
+                            <form id="gameForm" enctype="multipart/form-data" novalidate>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Nome do Projeto</label>
+                                    <input type="text" name="gameTitle" class="form-control form-control-clean"
+                                        id="gameTitle" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Desenvolvedor</label>
+                                    <input type="text" name="authorName" class="form-control form-control-clean"
+                                        id="authorName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Categoria</label>
+                                    <select name="gameCategory" class="form-select form-control-clean"
+                                        id="gameCategory">
+                                        <option value="Portfolio">Portfolio</option>
+                                        <option value="Landing Page">Landing Page</option>
+                                        <option value="Dashboard">Dashboard</option>
+                                        <option value="E-commerce">E-commerce</option>
+                                        <option value="Blog">Blog</option>
+                                        <option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <!-- Cidade -->
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Cidade</label>
+                                    <select class="form-select form-control-clean" id="citySelect" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Goiania">Goiânia</option>
+                                        <option value="Trindade">Trindade</option>
+                                    </select>
+                                </div>
+                                <!-- Escola -->
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Escola</label>
+                                    <select class="form-select form-control-clean" id="schoolSelect" required>
+                                        <option value="">Selecione a cidade primeiro</option>
+                                    </select>
+                                </div>
+                                <!-- Turma -->
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Turma</label>
+                                    <select class="form-select form-control-clean" id="classSelect" required>
+                                        <option value="">Selecione a escola primeiro</option>
+                                    </select>
+                                </div>
+                                <!-- Professor -->
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Professor</label>
+                                    <select class="form-select form-control-clean" id="teacherSelect" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Heberson">Heberson</option>
+                                        <option value="Guilherme">Guilherme</option>
+                                        <option value="Francisco">Francisco</option>
+                                        <option value="Patrícia">Patrícia</option>
+                                        <option value="Agenor">Agenor</option>
+                                        <option value="Cleusa">Cleusa</option>
+                                        <option value="Victor">Victor</option>
+                                        <option value="Daniel">Daniel</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Arquivo ZIP ou HTML</label>
+                                    <input type="file" name="gameFile" class="form-control form-control-clean"
+                                        id="gameFile" accept=".zip,.html" required>
+                                </div>
+                                <!-- Imagem de Capa (Opcional) -->
+                                <div class="mb-4">
+                                    <label class="form-label text-secundary small">
+                                        <i class="bi bi-image me-1"></i> Imagem de Capa
+                                        <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Opcional</span>
+                                    </label>
+                                    <input type="file" name="coverImage" class="form-control form-control-clean"
+                                        id="coverImage" accept="image/*">
+                                    <!-- Preview da imagem -->
+                                    <div id="coverPreviewWrapper" class="mt-2 d-none">
+                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="coverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                            <button type="button" id="removeCoverBtn" title="Remover imagem"
+                                                style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border:none;color:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Publicar</button>
+                                </div>
+                                <div id="uploadStatus" class="mt-2 text-center small"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Visualizar Site -->
+    <div class="modal fade" id="playModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content bg-dark-blue">
+                <div class="modal-header border-0 px-4 py-3 position-absolute w-100"
+                    style="z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);">
+                    <h5 class="modal-title text-white fw-bold" id="playModalTitle"></h5>
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-4 shadow-sm"
+                        data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-2"></i> Fechar
+                    </button>
+                </div>
+                <div class="modal-body p-0 d-flex justify-content-center align-items-center bg-black" style="overflow: hidden;">
+                    <iframe id="gameFrame" src="" frameborder="0" class="w-100 h-100" allow="autoplay; fullscreen; xr-spatial-tracking; execution-while-not-rendered; execution-while-out-of-viewport" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation" style="border:none;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Dados das escolas (espelho do index.html)
+        const schoolsData = {
+            'Goiania': ['Colégio Estadual Nazir Safatle'],
+            'Trindade': ['CEPI Abrão Manoel da Costa', 'Colégio Estadual José Ludovico de Almeida']
+        };
+
+        // DOM Elements
+        const gamesContainer = document.getElementById('gamesContainer');
+        const emptyState = document.getElementById('emptyState');
+        const noResultsState = document.getElementById('noResultsState');
+        const searchInput = document.getElementById('searchInput');
+        const filterCity = document.getElementById('filterCity');
+        const filterSchool = document.getElementById('filterSchool');
+        const filterYear = document.getElementById('filterYear');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const citySelect = document.getElementById('citySelect');
+        const schoolSelect = document.getElementById('schoolSelect');
+        const classSelect = document.getElementById('classSelect');
+        const gameForm = document.getElementById('gameForm');
+        const coverImageInput = document.getElementById('coverImage');
+        const coverPreview = document.getElementById('coverPreview');
+        const coverPreviewWrapper = document.getElementById('coverPreviewWrapper');
+        const removeCoverBtn = document.getElementById('removeCoverBtn');
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        
+        // ---- LÓGICA DO MODAL DE UPLOAD (cidade → escola → turma) ----
+        citySelect.addEventListener('change', () => {
+            schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
+            classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+            const city = citySelect.value;
+            if (city && schoolsData[city]) {
+                schoolSelect.innerHTML = '<option value="">Selecione...</option>';
+                schoolsData[city].forEach(school => {
+                    const opt = document.createElement('option');
+                    opt.value = school;
+                    opt.textContent = school;
+                    schoolSelect.appendChild(opt);
+                });
+            }
+        });
+
+        schoolSelect.addEventListener('change', () => {
+            classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+            if (schoolSelect.value !== '') {
+                classSelect.innerHTML = `
+                    <option value="">Selecione...</option>
+                    <option value="1° Ano">1° Ano</option>
+                    <option value="2° Ano">2° Ano</option>
+                `;
+            }
+        });
+
+        // ---- PREVIEW DA IMAGEM DE CAPA ----
+        coverImageInput.addEventListener('change', () => {
+            const file = coverImageInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    coverPreview.src = ev.target.result;
+                    coverPreviewWrapper.classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        removeCoverBtn.addEventListener('click', () => {
+            coverImageInput.value = '';
+            coverPreview.src = '';
+            coverPreviewWrapper.classList.add('d-none');
+        });
+
+        // ---- SUBMIT DO FORMULÁRIO (upload real) ----
+        gameForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitButton = gameForm.querySelector('button[type="submit"]');
+            uploadStatus.innerText = 'Enviando para o servidor...';
+            uploadStatus.className = 'mt-2 text-center small text-warning';
+
+            const gameTitle = document.getElementById('gameTitle').value.trim();
+            const authorName = document.getElementById('authorName').value.trim();
+            const gameCategory = document.getElementById('gameCategory').value;
+            const city = citySelect.value;
+            const school = schoolSelect.value;
+            const studentClass = classSelect.value;
+            const teacher = document.getElementById('teacherSelect').value;
+            const gameFile = document.getElementById('gameFile').files[0];
+            const coverFile = coverImageInput.files[0] || null;
+
+            if (!gameTitle || !authorName || !gameCategory || !city || !school || !studentClass || !teacher || !gameFile) {
+                uploadStatus.innerText = 'Preencha todos os campos e selecione um arquivo.';
+                uploadStatus.className = 'mt-2 text-center small text-danger';
+                return;
+            }
+
+            submitButton.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('gameTitle', gameTitle);
+                formData.append('authorName', authorName);
+                formData.append('gameCategory', gameCategory);
+                formData.append('city', city);
+                formData.append('school', school);
+                formData.append('studentClass', studentClass);
+                formData.append('teacher', teacher);
+                formData.append('gameFile', gameFile);
+                if (coverFile) formData.append('coverImage', coverFile);
+
+                const response = await fetch('/upload-site', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    let errorMsg = `Erro ${response.status}: ${response.statusText || 'Falha no servidor'}`;
+                    try {
+                        const ct = response.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const errorData = await response.json();
+                            errorMsg = errorData.error || errorMsg;
+                        }
+                    } catch (_) {}
+                    throw new Error(errorMsg);
+                }
+
+                uploadStatus.innerText = 'Site enviado com sucesso!';
+                uploadStatus.className = 'mt-2 text-center small text-success';
+
+                // Reset form
+                gameForm.reset();
+                coverPreview.src = '';
+                coverPreviewWrapper.classList.add('d-none');
+                schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
+                classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                    if (modal) modal.hide();
+                }, 2000);
+
+                await loadSites();
+
+            } catch (err) {
+                uploadStatus.innerText = 'Erro no envio: ' + err.message;
+                uploadStatus.className = 'mt-2 text-center small text-danger';
+                console.error(err);
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+
+        // ---- CARREGAR SITES DA API ----
+        async function loadSites() {
+            try {
+                const response = await fetch('/api/sites');
+                if (!response.ok) throw new Error('Erro ao carregar sites');
+
+                const sites = await response.json();
+                gamesContainer.innerHTML = '';
+
+                if (sites.length === 0) {
+                    emptyState.classList.remove('d-none');
+                    noResultsState.classList.add('d-none');
+                } else {
+                    emptyState.classList.add('d-none');
+                    sites.forEach(appendSite);
+                    applyFilters();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar sites:', error);
+            }
+        }
+
+        // ---- RENDERIZAR CARD DE SITE ----
+        function appendSite(site) {
+            const uniqueId = site.docId || site.id;
+            if (document.getElementById(`site-${uniqueId}`)) return;
+
+            const card = `
+            <div class="col" id="site-${uniqueId}">
+                <div class="game-card-container position-relative">
+                    <div class="game-card"
+                         data-site-id="${uniqueId}"
+                         data-site-url="${site.url}"
+                         data-site-title="${site.title}"
+                         data-author="${site.author}"
+                         data-city="${site.city || ''}"
+                         data-school="${site.school || ''}"
+                         data-year="${site.studentClass || ''}"
+                         style="cursor: pointer;">
+                        <div class="game-img-wrapper">
+                            <img src="${site.coverUrl || `https://source.unsplash.com/600x400/?website,code`}"
+                                 class="game-img" alt="${site.title}"
+                                 onerror="this.src='https://via.placeholder.com/600x400?text=${encodeURIComponent(site.title)}'">
+                            <div class="game-card-overlay">
+                                <button class="btn btn-play-hover">
+                                    <i class="bi bi-eye me-2"></i> Visualizar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body-modern">
+                            <span class="category-tag">${site.category}</span>
+                            <h3 class="h5 fw-bold mb-0">${site.title}</h3>
+                            <div class="author-info flex-column align-items-start gap-1">
+                                <div>
+                                    <i class="bi bi-person-circle"></i>
+                                    <span>${site.author} ${site.studentClass ? `- ${site.studentClass}` : ''}</span>
+                                </div>
+                                ${site.school ? `<div class="small"><i class="bi bi-building"></i> ${site.school}</div>` : ''}
+                                ${site.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${site.city}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+
+            gamesContainer.innerHTML += card;
+        }
+
+        // ---- ABRIR SITE NO MODAL ----
+        gamesContainer.addEventListener('click', (e) => {
+            const playBtn = e.target.closest('[class*="btn-play"]');
+            if (playBtn) {
+                const card = playBtn.closest('[data-site-id]');
+                const url = card.dataset.siteUrl;
+                const title = card.dataset.siteTitle;
+                openSite(url, title);
+            }
+        });
+
+        function openSite(url, title) {
+            const gameFrame = document.getElementById('gameFrame');
+            const modalTitle = document.getElementById('playModalTitle');
+            if (modalTitle) modalTitle.innerText = title;
+            gameFrame.src = url;
+            const modal = new bootstrap.Modal(document.getElementById('playModal'));
+            modal.show();
+        }
+
+        document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
+            document.getElementById('gameFrame').src = '';
+        });
+
+        // ---- SISTEMA DE FILTROS ----
+        filterCity.addEventListener('change', () => {
+            const city = filterCity.value;
+            filterSchool.innerHTML = '<option value="">Todas</option>';
+            if (city && schoolsData[city]) {
+                schoolsData[city].forEach(school => {
+                    const opt = document.createElement('option');
+                    opt.value = school;
+                    opt.textContent = school;
+                    filterSchool.appendChild(opt);
+                });
+            }
+            applyFilters();
+        });
+
+        searchInput.addEventListener('input', applyFilters);
+        filterSchool.addEventListener('change', applyFilters);
+        filterYear.addEventListener('change', applyFilters);
+
+        clearFiltersBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            filterCity.value = '';
+            filterSchool.innerHTML = '<option value="">Todas</option>';
+            filterYear.value = '';
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const cityValue = filterCity.value;
+            const schoolValue = filterSchool.value;
+            const yearValue = filterYear.value;
+
+            const cards = document.querySelectorAll('#gamesContainer .col');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const siteCard = card.querySelector('.game-card');
+                const author = (siteCard.dataset.author || '').toLowerCase();
+                const title = (siteCard.dataset.siteTitle || '').toLowerCase();
+                const city = siteCard.dataset.city || '';
+                const school = siteCard.dataset.school || '';
+                const year = siteCard.dataset.year || '';
+
+                let matchSearch = !searchTerm || author.includes(searchTerm) || title.includes(searchTerm);
+                let matchCity = !cityValue || city === cityValue;
+                let matchSchool = !schoolValue || school === schoolValue;
+                let matchYear = !yearValue || year === yearValue;
+
+                if (matchSearch && matchCity && matchSchool && matchYear) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (visibleCount === 0) {
+                const hasCards = document.querySelectorAll('#gamesContainer .col').length > 0;
+                if (hasCards) {
+                    emptyState.classList.add('d-none');
+                    noResultsState.classList.remove('d-none');
+                } else {
+                    emptyState.classList.remove('d-none');
+                    noResultsState.classList.add('d-none');
+                }
+            } else {
+                emptyState.classList.add('d-none');
+                noResultsState.classList.add('d-none');
+            }
+        }
+
+        // ---- INICIALIZAR ----
+        document.addEventListener('DOMContentLoaded', loadSites);
+    </script>
+</body>
+
+</html>

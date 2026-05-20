@@ -19,11 +19,12 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top glass-nav">
         <div class="container">
-            <a class="navbar-brand fw-bold fs-4" href="#">
-                <span class="text-gradient">Tec Jogos Senai </span>Jardim Colorado
+            <a class="navbar-brand fw-bold fs-4" href="/">
+                <span class="text-gradient">Tec Senai </span>Jardim Colorado
             </a>
             <div class="d-flex align-items-center gap-3">
-                <a href="#gallery" class="nav-link text-light opacity-75">Galeria</a>
+                <a href="/" class="nav-link text-light fw-semibold"><i class="bi bi-joystick me-1"></i>Jogos</a>
+                <a href="/sites.html" class="nav-link text-light opacity-75"><i class="bi bi-code-slash me-1"></i>Sites</a>
                 <button class="btn btn-modern-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-upload"></i> Enviar Jogo
                 </button>
@@ -176,6 +177,21 @@
                                     <label class="form-label text-secundary small">Turma</label>
                                     <select class="form-select form-control-clean" id="classSelect" required>
                                         <option value="">Selecione a escola primeiro</option>
+                                    </select>
+                                </div>
+                                <!-- Professor -->
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Professor</label>
+                                    <select class="form-select form-control-clean" id="teacherSelect" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Heberson">Heberson</option>
+                                        <option value="Guilherme">Guilherme</option>
+                                        <option value="Francisco">Francisco</option>
+                                        <option value="Patrícia">Patrícia</option>
+                                        <option value="Agenor">Agenor</option>
+                                        <option value="Cleusa">Cleusa</option>
+                                        <option value="Victor">Victor</option>
+                                        <option value="Daniel">Daniel</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">

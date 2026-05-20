@@ -85,10 +85,11 @@ form.addEventListener('submit', async (e) => {
     const city = document.getElementById('citySelect').value;
     const school = document.getElementById('schoolSelect').value;
     const studentClass = document.getElementById('classSelect').value;
+    const teacher = document.getElementById('teacherSelect').value;
     const gameFile = document.getElementById('gameFile').files[0];
     const coverFile = document.getElementById('coverImage').files[0] || null;
 
-    if (!gameTitle || !authorName || !gameCategory || !city || !school || !studentClass || !gameFile) {
+    if (!gameTitle || !authorName || !gameCategory || !city || !school || !studentClass || !teacher || !gameFile) {
         status.innerText = "Preencha todos os campos e selecione um arquivo.";
         status.className = "mt-2 text-center small text-danger";
         return;
@@ -104,6 +105,7 @@ form.addEventListener('submit', async (e) => {
         formData.append('city', city);
         formData.append('school', school);
         formData.append('studentClass', studentClass);
+        formData.append('teacher', teacher);
         formData.append('gameFile', gameFile);
         if (coverFile) formData.append('coverImage', coverFile);
 
