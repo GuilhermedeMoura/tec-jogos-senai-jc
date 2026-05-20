@@ -215,6 +215,7 @@ function appendGame(game) {
                             <i class="bi bi-person-circle"></i>
                             <span>${game.author} ${game.studentClass ? `- ${game.studentClass}` : ''}</span>
                         </div>
+                        ${game.teacher ? `<div class="small"><i class="bi bi-mortarboard"></i> Prof. ${game.teacher}</div>` : ''}
                         ${game.school ? `<div class="small"><i class="bi bi-building"></i> ${game.school}</div>` : ''}
                         ${game.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${game.city}</div>` : ''}
                     </div>

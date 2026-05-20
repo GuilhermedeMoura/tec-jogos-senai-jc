@@ -465,6 +465,7 @@
                                     <i class="bi bi-person-circle"></i>
                                     <span>${site.author} ${site.studentClass ? `- ${site.studentClass}` : ''}</span>
                                 </div>
+                                ${site.teacher ? `<div class="small"><i class="bi bi-mortarboard"></i> Prof. ${site.teacher}</div>` : ''}
                                 ${site.school ? `<div class="small"><i class="bi bi-building"></i> ${site.school}</div>` : ''}
                                 ${site.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${site.city}</div>` : ''}
                             </div>
