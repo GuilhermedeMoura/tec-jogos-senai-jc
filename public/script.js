@@ -197,12 +197,15 @@ function appendGame(game) {
                  data-city="${game.city}"
                  data-school="${game.school}"
                  data-year="${game.studentClass}"
+                 data-game-type="${game.gameType || 'html'}"
                  style="cursor: pointer;">
                 <div class="game-img-wrapper">
                     <img src="${game.coverUrl || `https://source.unsplash.com/600x400/?${game.category},game`}" class="game-img" alt="${game.title}" onerror="this.src='https://via.placeholder.com/600x400?text=${encodeURIComponent(game.title)}'">
                     <div class="game-card-overlay">
                         <button class="btn btn-play-hover">
-                            <i class="bi bi-controller me-2"></i> Jogar
+                            ${game.gameType === 'python'
+                                ? '<i class="bi bi-box-arrow-up-right me-2"></i> Abrir Jogo'
+                                : '<i class="bi bi-controller me-2"></i> Jogar'}
                         </button>
                     </div>
                     ${game.gameType === 'python' ? `<span style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.65);color:#f8c037;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:50px;backdrop-filter:blur(4px);">🐍 Python</span>` : ''}
@@ -236,6 +239,15 @@ gamesContainer.addEventListener('click', async (e) => {
         const card = playBtn.closest('[data-game-id]');
         const url = card.dataset.gameUrl;
         const title = card.dataset.gameTitle;
+        const gameType = card.dataset.gameType;
+
+        // Jogos Python abrem em nova aba: precisam de COOP/COEP headers
+        // que o servidor ja configura para /games/*, mas o iframe bloqueia
+        if (gameType === 'python') {
+            window.open(url, '_blank', 'noopener');
+            return;
+        }
+
         playGame(url, title);
     }
 });

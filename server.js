@@ -187,11 +187,11 @@ function generatePygbagRunner(mainPyName) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python / Pygame Runner</title>
+    <title>🐍 Python / Pygame</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #0a0a0a;
+            background: #0d0d1a;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -200,43 +200,112 @@ function generatePygbagRunner(mainPyName) {
             font-family: 'Courier New', monospace;
             color: #e0e0e0;
         }
-        #loading {
+        #status-box {
             text-align: center;
             padding: 2rem;
-            max-width: 480px;
+            max-width: 520px;
+            width: 90%;
         }
-        #loading h2 { font-size: 1.4rem; margin-bottom: .75rem; color: #f8c037; }
-        #loading p  { font-size: .85rem; opacity: .65; line-height: 1.6; }
-        #loading .tip { margin-top: 1rem; font-size: .75rem; opacity: .45; }
-        #progress { width: 100%; background: #222; border-radius: 4px; margin-top: 1rem; overflow: hidden; }
-        #bar { height: 4px; background: #f8c037; width: 0%; transition: width .3s; }
-        canvas { display: block; max-width: 100%; max-height: 95vh; }
+        #status-box h2 { font-size: 1.5rem; color: #f8c037; margin-bottom: .5rem; }
+        #step  { font-size: .9rem; opacity: .8; margin: .75rem 0; min-height: 1.2em; }
+        #track { background: #1e1e2e; border-radius: 6px; overflow: hidden; margin: .75rem 0; }
+        #bar   { height: 6px; background: linear-gradient(90deg,#f8c037,#ff6b35); width: 0%; transition: width .4s ease; }
+        #error-box {
+            display: none;
+            background: #2a0a0a;
+            border: 1px solid #c0392b;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            text-align: left;
+            font-size: .8rem;
+            color: #e74c3c;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #tip {
+            margin-top: 1.25rem;
+            font-size: .72rem;
+            opacity: .4;
+            line-height: 1.7;
+        }
+        #tip code { color: #f8c037; }
+        canvas { display: block; max-width: 100vw; max-height: 100vh; }
     </style>
 </head>
 <body>
-    <div id="loading">
-        <h2>🐍 Carregando Python + Pygame...</h2>
-        <p>O runtime WebAssembly está sendo baixado.<br>Isso pode levar <strong>30–60 segundos</strong> na primeira vez.</p>
-        <div id="progress"><div id="bar"></div></div>
-        <p class="tip">Requer que o jogo use <code>asyncio</code> no loop principal (padrão Pygbag).</p>
+    <div id="status-box">
+        <h2>🐍 Carregando Python + Pygame</h2>
+        <div id="step">Iniciando runtime WebAssembly...</div>
+        <div id="track"><div id="bar"></div></div>
+        <div id="error-box"></div>
+        <div id="tip">
+            O runtime Python (WebAssembly) pode levar <strong>30–60 s</strong> na 1ª vez.<br>
+            Seu jogo precisa usar <code>asyncio.sleep(0)</code> no loop principal:<br>
+            <code>async def main(): ... await asyncio.sleep(0)</code><br>
+            <code>asyncio.run(main())</code>
+        </div>
     </div>
-    <script>
-        // Anima a barra enquanto carrega
-        let prog = 0;
-        const bar = document.getElementById('bar');
-        const iv = setInterval(() => { prog = Math.min(prog + Math.random() * 3, 90); bar.style.width = prog + '%'; }, 400);
 
-        // Esconde o loading quando o canvas aparecer
-        new MutationObserver(() => {
-            if (document.querySelector('canvas')) {
-                clearInterval(iv);
-                bar.style.width = '100%';
-                setTimeout(() => document.getElementById('loading').style.display = 'none', 300);
-            }
-        }).observe(document.body, { childList: true, subtree: true });
+    <!-- Pyodide: CPython compilado em WebAssembly -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.27.4/full/pyodide.js"></script>
+    <script>
+    const bar  = document.getElementById('bar');
+    const step = document.getElementById('step');
+    const errBox = document.getElementById('error-box');
+
+    function setProgress(pct, msg) {
+        bar.style.width = pct + '%';
+        step.textContent = msg;
+    }
+
+    function showError(msg) {
+        errBox.style.display = 'block';
+        errBox.textContent = msg;
+        step.textContent = '❌ Falha ao carregar o jogo.';
+        bar.style.background = '#c0392b';
+        bar.style.width = '100%';
+    }
+
+    async function runGame() {
+        try {
+            setProgress(10, 'Baixando runtime Pyodide...');
+            const pyodide = await loadPyodide();
+
+            setProgress(40, 'Carregando pacotes (pygame-ce)...');
+            await pyodide.loadPackage('pygame-ce');
+
+            setProgress(70, 'Buscando código do jogo...');
+            const resp = await fetch('${mainPyName}');
+            if (!resp.ok) throw new Error('Arquivo "${mainPyName}" não encontrado (HTTP ' + resp.status + ')');
+            const code = await resp.text();
+
+            setProgress(90, 'Executando jogo...');
+
+            // Esconde o painel de loading quando o canvas aparecer
+            new MutationObserver((_, obs) => {
+                if (document.querySelector('canvas')) {
+                    obs.disconnect();
+                    bar.style.width = '100%';
+                    setTimeout(() => {
+                        const box = document.getElementById('status-box');
+                        if (box) box.style.display = 'none';
+                    }, 400);
+                }
+            }).observe(document.body, { childList: true, subtree: true });
+
+            await pyodide.runPythonAsync(code);
+            setProgress(100, 'Concluído.');
+
+        } catch (err) {
+            console.error('[PythonRunner]', err);
+            showError(err.message || String(err));
+        }
+    }
+
+    runGame();
     </script>
-    <!-- Pygbag: Python/Pygame → WebAssembly no browser -->
-    <script src="https://pygame-web.github.io/pygbag/app.js" data-main="${mainPyName}" async></script>
 </body>
 </html>`;
 }
