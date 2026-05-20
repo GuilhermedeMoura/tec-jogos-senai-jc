@@ -150,6 +150,97 @@ function reorganizeGameFiles(gamePath, indexHtmlPath) {
     moveContents(indexHtmlPath, gamePath);
 }
 
+// Encontra o arquivo Python principal dentro de um diretório
+function findMainPython(dirPath) {
+    const files = fs.readdirSync(dirPath).filter(f =>
+        !f.includes('__MACOSX') && !f.startsWith('._') && f !== 'node_modules'
+    );
+
+    // Prioridade 1: main.py
+    for (const file of files) {
+        if (file.toLowerCase() === 'main.py') return { dirPath, fileName: file };
+    }
+
+    // Prioridade 2: subdiretórios
+    for (const file of files) {
+        const filePath = path.join(dirPath, file);
+        try {
+            if (fs.statSync(filePath).isDirectory()) {
+                const result = findMainPython(filePath);
+                if (result) return result;
+            }
+        } catch (e) {}
+    }
+
+    // Prioridade 3: qualquer .py
+    for (const file of files) {
+        if (file.toLowerCase().endsWith('.py')) return { dirPath, fileName: file };
+    }
+
+    return null;
+}
+
+// Gera um index.html que usa Pygbag (Pygame → WebAssembly) para rodar o jogo no browser
+function generatePygbagRunner(mainPyName) {
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python / Pygame Runner</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #e0e0e0;
+        }
+        #loading {
+            text-align: center;
+            padding: 2rem;
+            max-width: 480px;
+        }
+        #loading h2 { font-size: 1.4rem; margin-bottom: .75rem; color: #f8c037; }
+        #loading p  { font-size: .85rem; opacity: .65; line-height: 1.6; }
+        #loading .tip { margin-top: 1rem; font-size: .75rem; opacity: .45; }
+        #progress { width: 100%; background: #222; border-radius: 4px; margin-top: 1rem; overflow: hidden; }
+        #bar { height: 4px; background: #f8c037; width: 0%; transition: width .3s; }
+        canvas { display: block; max-width: 100%; max-height: 95vh; }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <h2>🐍 Carregando Python + Pygame...</h2>
+        <p>O runtime WebAssembly está sendo baixado.<br>Isso pode levar <strong>30–60 segundos</strong> na primeira vez.</p>
+        <div id="progress"><div id="bar"></div></div>
+        <p class="tip">Requer que o jogo use <code>asyncio</code> no loop principal (padrão Pygbag).</p>
+    </div>
+    <script>
+        // Anima a barra enquanto carrega
+        let prog = 0;
+        const bar = document.getElementById('bar');
+        const iv = setInterval(() => { prog = Math.min(prog + Math.random() * 3, 90); bar.style.width = prog + '%'; }, 400);
+
+        // Esconde o loading quando o canvas aparecer
+        new MutationObserver(() => {
+            if (document.querySelector('canvas')) {
+                clearInterval(iv);
+                bar.style.width = '100%';
+                setTimeout(() => document.getElementById('loading').style.display = 'none', 300);
+            }
+        }).observe(document.body, { childList: true, subtree: true });
+    </script>
+    <!-- Pygbag: Python/Pygame → WebAssembly no browser -->
+    <script src="https://pygame-web.github.io/pygbag/app.js" data-main="${mainPyName}" async></script>
+</body>
+</html>`;
+}
+
 // Smart Middleware to Stream Games from Firebase with Local Caching
 app.use('/games/:gameId', async (req, res, next) => {
     const gameId = req.params.gameId;
@@ -302,6 +393,7 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
 
         let indexHtmlPath = null;
         let indexInfo = null;
+        let gameType = 'html'; // 'html' | 'python'
         let storageFileRef = ref(storage, `games/${gameId}.zip`);
         let uploadedToStorage = false;
 
@@ -311,30 +403,60 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
                 zip.extractAllTo(localGamePath, true);
                 indexInfo = findIndexHtml(localGamePath);
                 if (indexInfo) {
+                    // ZIP com HTML normal (Unity, Godot, web game)
                     indexHtmlPath = indexInfo.dirPath;
+                } else {
+                    // Sem HTML — verifica se é um jogo Python/Pygame
+                    const pythonInfo = findMainPython(localGamePath);
+                    if (pythonInfo) {
+                        reorganizeGameFiles(localGamePath, pythonInfo.dirPath);
+                        const runnerHtml = generatePygbagRunner(pythonInfo.fileName);
+                        fs.writeFileSync(path.join(localGamePath, 'index.html'), runnerHtml);
+                        indexHtmlPath = localGamePath;
+                        indexInfo = { dirPath: localGamePath, fileName: 'index.html' };
+                        gameType = 'python';
+                        console.log(`[Python] Detected Python/Pygame game, main: ${pythonInfo.fileName}`);
+                    }
                 }
-                
-                // Upload the original zip to Firebase Storage
+
+                // Upload do ZIP original para o Firebase Storage
                 const fileBuffer = fs.readFileSync(file.path);
                 await uploadBytes(storageFileRef, fileBuffer, { contentType: 'application/zip' });
                 uploadedToStorage = true;
                 console.log(`[Storage] Uploaded ZIP for game ${gameId}`);
-                
+
             } else if (file.originalname.toLowerCase().endsWith('.html')) {
                 fs.copyFileSync(file.path, path.join(localGamePath, 'index.html'));
                 indexHtmlPath = localGamePath;
-                
-                // If it's a single HTML file, zip it so we store everything uniformly
+
                 const zipOut = new AdmZip();
                 zipOut.addLocalFile(file.path);
                 const outBuffer = zipOut.toBuffer();
                 await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
                 uploadedToStorage = true;
                 console.log(`[Storage] Uploaded HTML as ZIP for game ${gameId}`);
+
+            } else if (file.originalname.toLowerCase().endsWith('.py')) {
+                // Arquivo Python único (.py)
+                fs.copyFileSync(file.path, path.join(localGamePath, file.originalname));
+                const runnerHtml = generatePygbagRunner(file.originalname);
+                fs.writeFileSync(path.join(localGamePath, 'index.html'), runnerHtml);
+                indexHtmlPath = localGamePath;
+                indexInfo = { dirPath: localGamePath, fileName: 'index.html' };
+                gameType = 'python';
+
+                // Empacota como ZIP para armazenar no Storage uniformemente
+                const zipOut = new AdmZip();
+                zipOut.addLocalFile(file.path);
+                const outBuffer = zipOut.toBuffer();
+                await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
+                uploadedToStorage = true;
+                console.log(`[Storage] Uploaded .py as ZIP for game ${gameId}`);
+
             } else {
                 fs.rmSync(localGamePath, { recursive: true, force: true });
                 fs.unlinkSync(file.path);
-                return res.status(400).json({ error: 'Envie um arquivo .zip ou .html' });
+                return res.status(400).json({ error: 'Envie um arquivo .zip, .html ou .py' });
             }
         } catch (uploadErr) {
             console.error('[Error] Failed to upload to Firebase Storage:', uploadErr.message);
@@ -343,9 +465,9 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
 
         fs.unlinkSync(file.path);
 
-        if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, indexInfo ? indexInfo.fileName : 'index.html'))) {
+        if (!indexHtmlPath || !fs.existsSync(path.join(localGamePath, 'index.html'))) {
             fs.rmSync(localGamePath, { recursive: true, force: true });
-            return res.status(400).json({ error: 'Arquivo index.html não encontrado no ZIP.' });
+            return res.status(400).json({ error: 'Nenhum ponto de entrada encontrado. ZIP deve conter index.html (HTML/Unity/Godot) ou main.py (Python/Pygame).' });
         }
 
         reorganizeGameFiles(localGamePath, indexHtmlPath);
@@ -391,6 +513,7 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
             school: school || null,
             studentClass: studentClass || null,
             teacher: teacher || null,
+            gameType: gameType,
             url: gameUrl,
             coverUrl: coverUrl,
             storageUrl: `gs://tec-jogos-senai-jc.firebasestorage.app/games/${gameId}.zip`,

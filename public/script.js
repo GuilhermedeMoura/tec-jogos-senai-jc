@@ -205,6 +205,7 @@ function appendGame(game) {
                             <i class="bi bi-controller me-2"></i> Jogar
                         </button>
                     </div>
+                    ${game.gameType === 'python' ? `<span style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.65);color:#f8c037;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:50px;backdrop-filter:blur(4px);">🐍 Python</span>` : ''}
                 </div>
                 <div class="card-body-modern">
                     <span class="category-tag">${game.category}</span>
@@ -222,6 +223,7 @@ function appendGame(game) {
         </div>
     </div>
     `;
+
 
     gamesContainer.innerHTML += card;
 }
