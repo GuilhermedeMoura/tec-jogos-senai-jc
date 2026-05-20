@@ -150,6 +150,22 @@ function reorganizeGameFiles(gamePath, indexHtmlPath) {
     moveContents(indexHtmlPath, gamePath);
 }
 
+// Converte um título em slug seguro para uso em IDs/caminhos de arquivo
+function slugify(text) {
+    return (text || 'jogo')
+        .toString()
+        .normalize('NFD')                   // decompõe acentos (é → e + ́)
+        .replace(/[\u0300-\u036f]/g, '')    // remove marcas de acento
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')       // remove caracteres especiais
+        .replace(/[\s_]+/g, '-')            // espaços/underscores → hífen
+        .replace(/-+/g, '-')                // colapsa hífens duplos
+        .replace(/^-+|-+$/g, '')            // remove hífens das bordas
+        .substring(0, 40)                   // limita o tamanho
+        || 'jogo';                          // fallback se ficar vazio
+}
+
 // Encontra o arquivo Python principal dentro de um diretório
 function findMainPython(dirPath) {
     const files = fs.readdirSync(dirPath).filter(f =>
@@ -181,7 +197,37 @@ function findMainPython(dirPath) {
 }
 
 // Gera um index.html que usa Pygbag (Pygame → WebAssembly) para rodar o jogo no browser
-function generatePygbagRunner(mainPyName) {
+// Escaneia todos os arquivos da pasta do jogo (exceto index.html)
+function scanGameFiles(gameFolder) {
+    const files = [];
+    function walk(dir, relBase) {
+        try {
+            const items = fs.readdirSync(dir).filter(f =>
+                !f.startsWith('.') && !f.includes('__MACOSX') && f !== 'index.html'
+            );
+            for (const item of items) {
+                const fullPath = path.join(dir, item);
+                const relPath  = relBase ? `${relBase}/${item}` : item;
+                try {
+                    const stat = fs.statSync(fullPath);
+                    if (stat.isDirectory()) {
+                        walk(fullPath, relPath);
+                    } else if (stat.size <= 30 * 1024 * 1024) { // ignora arquivos > 30 MB
+                        files.push(relPath);
+                    }
+                } catch (_) {}
+            }
+        } catch (_) {}
+    }
+    walk(gameFolder, '');
+    return files;
+}
+
+function generatePygbagRunner(mainPyName, gameFolder) {
+    // Lista de todos os assets que o runner vai carregar no FS virtual
+    const gameFiles = gameFolder ? scanGameFiles(gameFolder) : [mainPyName];
+    const filesJson = JSON.stringify(gameFiles);
+
     return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -241,49 +287,85 @@ function generatePygbagRunner(mainPyName) {
         <div id="track"><div id="bar"></div></div>
         <div id="error-box"></div>
         <div id="tip">
-            O runtime Python (WebAssembly) pode levar <strong>30–60 s</strong> na 1ª vez.<br>
-            Seu jogo precisa usar <code>asyncio.sleep(0)</code> no loop principal:<br>
-            <code>async def main(): ... await asyncio.sleep(0)</code><br>
-            <code>asyncio.run(main())</code>
+            O runtime pode levar <strong>30–60 s</strong> na 1ª vez.<br>
+            O loop principal deve usar <code>await asyncio.sleep(0)</code>.<br>
+            Imagens e sons são carregados automaticamente do ZIP.
         </div>
     </div>
 
-    <!-- Pyodide: CPython compilado em WebAssembly -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.27.4/full/pyodide.js"></script>
     <script>
-    const bar  = document.getElementById('bar');
-    const step = document.getElementById('step');
+    const GAME_FILES = ${filesJson};
+    const MAIN_PY   = '${mainPyName}';
+
+    const bar    = document.getElementById('bar');
+    const step   = document.getElementById('step');
     const errBox = document.getElementById('error-box');
 
     function setProgress(pct, msg) {
         bar.style.width = pct + '%';
         step.textContent = msg;
     }
-
     function showError(msg) {
         errBox.style.display = 'block';
-        errBox.textContent = msg;
-        step.textContent = '❌ Falha ao carregar o jogo.';
+        errBox.textContent   = msg;
+        step.textContent     = '❌ Falha ao carregar o jogo.';
         bar.style.background = '#c0392b';
-        bar.style.width = '100%';
+        bar.style.width      = '100%';
+    }
+
+    // Cria diretórios aninhados no FS virtual do Pyodide
+    function mkdirp(pyodide, relPath) {
+        const parts = relPath.split('/').filter(Boolean);
+        let cur = '/game';
+        for (const p of parts) {
+            cur += '/' + p;
+            try { pyodide.FS.mkdir(cur); } catch (_) {}
+        }
     }
 
     async function runGame() {
         try {
-            setProgress(10, 'Baixando runtime Pyodide...');
+            setProgress(8, 'Baixando runtime Pyodide...');
             const pyodide = await loadPyodide();
 
-            setProgress(40, 'Carregando pacotes (pygame-ce)...');
+            setProgress(30, 'Carregando pygame-ce...');
             await pyodide.loadPackage('pygame-ce');
 
-            setProgress(70, 'Buscando código do jogo...');
-            const resp = await fetch('${mainPyName}');
-            if (!resp.ok) throw new Error('Arquivo "${mainPyName}" não encontrado (HTTP ' + resp.status + ')');
-            const code = await resp.text();
+            // Cria o diretório raiz do jogo no FS virtual
+            try { pyodide.FS.mkdir('/game'); } catch (_) {}
+
+            // ── Carrega TODOS os arquivos do jogo no FS virtual ──────────────
+            const total = GAME_FILES.length;
+            setProgress(50, \`Carregando \${total} arquivo(s) do jogo...\`);
+
+            for (let i = 0; i < total; i++) {
+                const relPath = GAME_FILES[i];
+                try {
+                    // Cria subdiretórios se necessário
+                    const dir = relPath.includes('/') ? relPath.split('/').slice(0, -1).join('/') : null;
+                    if (dir) mkdirp(pyodide, dir);
+
+                    const resp = await fetch(relPath);
+                    if (resp.ok) {
+                        const buf = await resp.arrayBuffer();
+                        pyodide.FS.writeFile('/game/' + relPath, new Uint8Array(buf));
+                    }
+                } catch (e) {
+                    console.warn('[Runner] Não foi possível carregar:', relPath, e.message);
+                }
+                setProgress(50 + Math.round(((i + 1) / total) * 30),
+                    \`Carregando arquivos... (\${i + 1}/\${total})\`);
+            }
+            // ─────────────────────────────────────────────────────────────────
+
+            setProgress(82, 'Configurando ambiente Python...');
+            // Muda o diretório de trabalho para /game — caminhos relativos funcionam
+            pyodide.runPython('import os; os.chdir("/game")');
 
             setProgress(90, 'Executando jogo...');
 
-            // Esconde o painel de loading quando o canvas aparecer
+            // Esconde o painel quando o canvas aparecer
             new MutationObserver((_, obs) => {
                 if (document.querySelector('canvas')) {
                     obs.disconnect();
@@ -291,10 +373,12 @@ function generatePygbagRunner(mainPyName) {
                     setTimeout(() => {
                         const box = document.getElementById('status-box');
                         if (box) box.style.display = 'none';
-                    }, 400);
+                    }, 300);
                 }
             }).observe(document.body, { childList: true, subtree: true });
 
+            // Lê e executa o arquivo Python principal do FS virtual
+            const code = pyodide.FS.readFile('/game/' + MAIN_PY, { encoding: 'utf8' });
             await pyodide.runPythonAsync(code);
             setProgress(100, 'Concluído.');
 
@@ -308,6 +392,7 @@ function generatePygbagRunner(mainPyName) {
     </script>
 </body>
 </html>`;
+
 }
 
 // Smart Middleware to Stream Games from Firebase with Local Caching
@@ -348,12 +433,21 @@ app.use('/games/:gameId', async (req, res, next) => {
             let indexInfo = findIndexHtml(localGamePath);
             if (indexInfo) {
                 reorganizeGameFiles(localGamePath, indexInfo.dirPath);
-                
+
                 // Garantir que o nome final seja 'index.html' (minúsculo)
                 const targetHtml = path.join(localGamePath, 'index.html');
                 const originalHtml = path.join(localGamePath, indexInfo.fileName);
                 if (indexInfo.fileName !== 'index.html' && fs.existsSync(originalHtml)) {
                     fs.renameSync(originalHtml, targetHtml);
+                }
+            } else {
+                // Sem index.html — pode ser um ZIP de jogo Python
+                const pythonInfo = findMainPython(localGamePath);
+                if (pythonInfo) {
+                    reorganizeGameFiles(localGamePath, pythonInfo.dirPath);
+                    const runnerHtml = generatePygbagRunner(pythonInfo.fileName, localGamePath);
+                    fs.writeFileSync(path.join(localGamePath, 'index.html'), runnerHtml);
+                    console.log(`[Cache] Rebuilt Python runner for game ${gameId}: ${pythonInfo.fileName}`);
                 }
             }
             console.log(`[Cache] Game ${gameId} cached locally for future requests`);
@@ -451,7 +545,7 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
 
         if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
-        const gameId = Date.now().toString();
+        const gameId = slugify(gameTitle) + '-' + Date.now().toString();
         const localGamePath = path.join(GAMES_FOLDER, gameId);
         
         try {
@@ -479,7 +573,7 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
                     const pythonInfo = findMainPython(localGamePath);
                     if (pythonInfo) {
                         reorganizeGameFiles(localGamePath, pythonInfo.dirPath);
-                        const runnerHtml = generatePygbagRunner(pythonInfo.fileName);
+                        const runnerHtml = generatePygbagRunner(pythonInfo.fileName, localGamePath);
                         fs.writeFileSync(path.join(localGamePath, 'index.html'), runnerHtml);
                         indexHtmlPath = localGamePath;
                         indexInfo = { dirPath: localGamePath, fileName: 'index.html' };
@@ -488,11 +582,13 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
                     }
                 }
 
-                // Upload do ZIP original para o Firebase Storage
-                const fileBuffer = fs.readFileSync(file.path);
-                await uploadBytes(storageFileRef, fileBuffer, { contentType: 'application/zip' });
+                // ZIP Python: re-empacota a pasta local (que já tem index.html gerado)
+                const repackZip = new AdmZip();
+                repackZip.addLocalFolder(localGamePath);
+                const repackBuffer = repackZip.toBuffer();
+                await uploadBytes(storageFileRef, repackBuffer, { contentType: 'application/zip' });
                 uploadedToStorage = true;
-                console.log(`[Storage] Uploaded ZIP for game ${gameId}`);
+                console.log(`[Storage] Uploaded repackaged ZIP (with runner) for game ${gameId}`);
 
             } else if (file.originalname.toLowerCase().endsWith('.html')) {
                 fs.copyFileSync(file.path, path.join(localGamePath, 'index.html'));
@@ -508,19 +604,19 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
             } else if (file.originalname.toLowerCase().endsWith('.py')) {
                 // Arquivo Python único (.py)
                 fs.copyFileSync(file.path, path.join(localGamePath, file.originalname));
-                const runnerHtml = generatePygbagRunner(file.originalname);
+                const runnerHtml = generatePygbagRunner(file.originalname, localGamePath);
                 fs.writeFileSync(path.join(localGamePath, 'index.html'), runnerHtml);
                 indexHtmlPath = localGamePath;
                 indexInfo = { dirPath: localGamePath, fileName: 'index.html' };
                 gameType = 'python';
 
-                // Empacota como ZIP para armazenar no Storage uniformemente
+                // Empacota a pasta local inteira (inclui .py + index.html gerado)
                 const zipOut = new AdmZip();
-                zipOut.addLocalFile(file.path);
+                zipOut.addLocalFolder(localGamePath);
                 const outBuffer = zipOut.toBuffer();
                 await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
                 uploadedToStorage = true;
-                console.log(`[Storage] Uploaded .py as ZIP for game ${gameId}`);
+                console.log(`[Storage] Uploaded .py + runner as ZIP for game ${gameId}`);
 
             } else {
                 fs.rmSync(localGamePath, { recursive: true, force: true });
@@ -547,6 +643,20 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
             const targetHtml = path.join(localGamePath, 'index.html');
             if (fs.existsSync(originalHtml)) {
                 fs.renameSync(originalHtml, targetHtml);
+            }
+        }
+
+        // Para ZIPs HTML com subpastas (ex: Unity/Godot), re-empacota após reorganizar
+        // para que o Firebase Storage tenha sempre index.html na raiz
+        if (gameType === 'html' && file.originalname.toLowerCase().endsWith('.zip') && indexInfo && indexInfo.dirPath !== localGamePath) {
+            try {
+                const repackZip = new AdmZip();
+                repackZip.addLocalFolder(localGamePath);
+                const repackBuffer = repackZip.toBuffer();
+                await uploadBytes(storageFileRef, repackBuffer, { contentType: 'application/zip' });
+                console.log(`[Storage] Re-uploaded reorganized HTML ZIP for game ${gameId}`);
+            } catch (repackErr) {
+                console.warn(`[Storage] Failed to re-upload reorganized ZIP (non-critical):`, repackErr.message);
             }
         }
 
@@ -661,7 +771,7 @@ app.post('/upload-site', upload.fields([{ name: 'gameFile', maxCount: 1 }, { nam
 
         if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
-        const siteId = Date.now().toString();
+        const siteId = slugify(gameTitle) + '-' + Date.now().toString();
         const localSitePath = path.join(SITES_FOLDER, siteId);
 
         try {
