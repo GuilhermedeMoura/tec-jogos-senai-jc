@@ -224,6 +224,12 @@ function appendGame(game) {
                         ${game.school ? `<div class="small"><i class="bi bi-building"></i> ${game.school}</div>` : ''}
                         ${game.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${game.city}</div>` : ''}
                     </div>
+                    <div class="d-flex justify-content-end mt-2">
+                        <span class="plays-badge" id="plays-${uniqueId}" data-count="${game.plays || 0}" title="Partidas jogadas">
+                            <i class="bi bi-controller"></i>
+                            ${(game.plays || 0) === 1 ? '1 jogada' : `${game.plays || 0} jogadas`}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -242,9 +248,21 @@ gamesContainer.addEventListener('click', async (e) => {
         const url = card.dataset.gameUrl;
         const title = card.dataset.gameTitle;
         const gameType = card.dataset.gameType;
+        const gameId = card.dataset.gameId;
 
-        // Jogos Python abrem em nova aba: precisam de COOP/COEP headers
-        // que o servidor ja configura para /games/*, mas o iframe bloqueia
+        // Incrementa contador (fire-and-forget, não bloqueia o jogo)
+        fetch(`/api/games/${gameId}/play`, { method: 'POST' })
+            .then(() => {
+                const badge = document.getElementById(`plays-${gameId}`);
+                if (badge) {
+                    const cur = parseInt(badge.dataset.count || '0') + 1;
+                    badge.dataset.count = cur;
+                    badge.innerHTML = `<i class="bi bi-controller"></i> ${cur} ${cur === 1 ? 'jogada' : 'jogadas'}`;
+                }
+            })
+            .catch(() => {});
+
+        // Jogos Python abrem em nova aba
         if (gameType === 'python') {
             window.open(url, '_blank', 'noopener');
             return;

@@ -6,7 +6,7 @@ const fs = require('fs');
 
 // Firebase Initialization
 const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, getDocs, query, orderBy, where } = require('firebase/firestore');
+const { getFirestore, collection, addDoc, deleteDoc, updateDoc, increment, doc, getDocs, query, orderBy, where } = require('firebase/firestore');
 const { getStorage, ref, uploadBytes, getBytes, deleteObject, getDownloadURL } = require('firebase/storage');
 
 const firebaseConfig = {
@@ -964,6 +964,24 @@ app.get('/api/sites', async (req, res) => {
     }
 });
 
+// Incrementa contador de visualizações de sites
+app.post('/api/sites/:siteId/view', async (req, res) => {
+    try {
+        const siteId = req.params.siteId;
+        const q = query(collection(db, 'sites'));
+        const snap = await getDocs(q);
+        let targetDocId = null;
+        snap.forEach(d => {
+            if (d.id === siteId || String(d.data().id) === String(siteId)) targetDocId = d.id;
+        });
+        if (!targetDocId) return res.status(404).json({ error: 'Site não encontrado.' });
+        await updateDoc(doc(db, 'sites', targetDocId), { views: increment(1) });
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Edita metadados de um site (painel de professores)
 app.patch('/api/sites/:siteId', async (req, res) => {
     try {
@@ -1036,6 +1054,24 @@ app.delete('/api/sites/:siteId', async (req, res) => {
     } catch (error) {
         console.error('[Error] Failed to delete site:', error.message);
         res.status(500).json({ error: 'Erro ao deletar o site: ' + error.message });
+    }
+});
+
+// Incrementa contador de partidas de jogos
+app.post('/api/games/:gameId/play', async (req, res) => {
+    try {
+        const gameId = req.params.gameId;
+        const q = query(collection(db, 'games'));
+        const snap = await getDocs(q);
+        let targetDocId = null;
+        snap.forEach(d => {
+            if (d.id === gameId || String(d.data().id) === String(gameId)) targetDocId = d.id;
+        });
+        if (!targetDocId) return res.status(404).json({ error: 'Jogo não encontrado.' });
+        await updateDoc(doc(db, 'games', targetDocId), { plays: increment(1) });
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
