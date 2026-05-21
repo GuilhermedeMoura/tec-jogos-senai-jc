@@ -6,7 +6,7 @@ const fs = require('fs');
 
 // Firebase Initialization
 const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, addDoc, deleteDoc, doc, getDocs, query, orderBy, where } = require('firebase/firestore');
+const { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, getDocs, query, orderBy, where } = require('firebase/firestore');
 const { getStorage, ref, uploadBytes, getBytes, deleteObject, getDownloadURL } = require('firebase/storage');
 
 const firebaseConfig = {
@@ -924,6 +924,35 @@ app.get('/api/sites', async (req, res) => {
     }
 });
 
+// Edita metadados de um site (painel de professores)
+app.patch('/api/sites/:siteId', async (req, res) => {
+    try {
+        const siteId = req.params.siteId;
+        const allowed = ['title', 'author', 'category', 'studentClass', 'teacher', 'school', 'city'];
+        const patch = {};
+        for (const key of allowed) {
+            if (req.body[key] !== undefined) patch[key] = req.body[key];
+        }
+        if (Object.keys(patch).length === 0)
+            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+
+        const q = query(collection(db, 'sites'));
+        const snap = await getDocs(q);
+        let targetDocId = null;
+        snap.forEach(d => {
+            if (d.id === siteId || String(d.data().id) === String(siteId)) targetDocId = d.id;
+        });
+        if (!targetDocId) return res.status(404).json({ error: 'Site não encontrado.' });
+
+        await updateDoc(doc(db, 'sites', targetDocId), patch);
+        console.log(`[PATCH] Site ${siteId} updated:`, patch);
+        res.json({ message: 'Site atualizado com sucesso.' });
+    } catch (err) {
+        console.error('[PATCH site]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.delete('/api/sites/:siteId', async (req, res) => {
     try {
         const siteId = req.params.siteId;
@@ -967,6 +996,35 @@ app.delete('/api/sites/:siteId', async (req, res) => {
     } catch (error) {
         console.error('[Error] Failed to delete site:', error.message);
         res.status(500).json({ error: 'Erro ao deletar o site: ' + error.message });
+    }
+});
+
+// Edita metadados de um jogo (painel de professores)
+app.patch('/api/games/:gameId', async (req, res) => {
+    try {
+        const gameId = req.params.gameId;
+        const allowed = ['title', 'author', 'category', 'studentClass', 'teacher', 'school', 'city'];
+        const patch = {};
+        for (const key of allowed) {
+            if (req.body[key] !== undefined) patch[key] = req.body[key];
+        }
+        if (Object.keys(patch).length === 0)
+            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+
+        const q = query(collection(db, 'games'));
+        const snap = await getDocs(q);
+        let targetDocId = null;
+        snap.forEach(d => {
+            if (d.id === gameId || String(d.data().id) === String(gameId)) targetDocId = d.id;
+        });
+        if (!targetDocId) return res.status(404).json({ error: 'Jogo não encontrado.' });
+
+        await updateDoc(doc(db, 'games', targetDocId), patch);
+        console.log(`[PATCH] Game ${gameId} updated:`, patch);
+        res.json({ message: 'Jogo atualizado com sucesso.' });
+    } catch (err) {
+        console.error('[PATCH game]', err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 

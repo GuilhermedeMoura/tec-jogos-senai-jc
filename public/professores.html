@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel dos Professores – Tec Senai JC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        /* ── Login Screen ─────────────────────────────────────────── */
+        #loginScreen {
+            position: fixed; inset: 0; z-index: 9999;
+            background: radial-gradient(ellipse at 60% 40%, #1a1040 0%, #0d0d1a 70%);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 20px;
+            padding: 2.5rem 2.8rem;
+            width: 100%; max-width: 400px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 24px 60px rgba(0,0,0,.5);
+        }
+        .login-card h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: .25rem; }
+        .login-card p  { font-size: .85rem; opacity: .5; margin-bottom: 1.75rem; }
+        .login-input {
+            background: rgba(255,255,255,.06) !important;
+            border: 1px solid rgba(255,255,255,.12) !important;
+            color: #fff !important;
+            border-radius: 10px;
+            padding: .7rem 1rem;
+        }
+        .login-input::placeholder { opacity: .4; }
+        .login-input:focus {
+            background: rgba(255,255,255,.1) !important;
+            border-color: #7c4dff !important;
+            box-shadow: 0 0 0 3px rgba(124,77,255,.2) !important;
+            outline: none;
+        }
+        .login-btn {
+            background: linear-gradient(135deg, #7c4dff, #e040fb);
+            border: none; border-radius: 10px;
+            color: #fff; font-weight: 700;
+            padding: .75rem; font-size: 1rem;
+            transition: opacity .2s, transform .15s;
+        }
+        .login-btn:hover { opacity: .88; transform: translateY(-1px); }
+        #loginError {
+            display: none;
+            background: rgba(220,38,38,.15);
+            border: 1px solid rgba(220,38,38,.4);
+            border-radius: 8px;
+            color: #f87171;
+            font-size: .82rem;
+            padding: .6rem 1rem;
+            margin-top: .75rem;
+        }
+
+        /* ── Admin Panel ──────────────────────────────────────────── */
+        #adminPanel { display: none; }
+
+        .admin-card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: border-color .2s, transform .2s;
+        }
+        .admin-card:hover {
+            border-color: rgba(124,77,255,.4);
+            transform: translateY(-2px);
+        }
+        .admin-cover {
+            width: 100%; height: 140px;
+            object-fit: cover;
+            display: block;
+        }
+        .admin-body { padding: 1rem; }
+        .admin-field-label {
+            font-size: .68rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .05em;
+            opacity: .45; margin-bottom: .2rem;
+        }
+        .admin-field-value {
+            font-size: .82rem; color: #e0e0e0;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 7px;
+            padding: .3rem .55rem;
+            width: 100%; cursor: pointer;
+            transition: border-color .15s, background .15s;
+        }
+        .admin-field-value:hover {
+            border-color: rgba(124,77,255,.5);
+            background: rgba(124,77,255,.08);
+        }
+        .admin-field-value:focus {
+            outline: none;
+            border-color: #7c4dff;
+            background: rgba(124,77,255,.12);
+            box-shadow: 0 0 0 2px rgba(124,77,255,.2);
+        }
+        .admin-actions {
+            display: flex; gap: .5rem;
+            padding: .75rem 1rem;
+            border-top: 1px solid rgba(255,255,255,.06);
+            background: rgba(0,0,0,.15);
+        }
+        .btn-save {
+            flex: 1; font-size: .78rem; font-weight: 600;
+            background: linear-gradient(135deg, #7c4dff, #e040fb);
+            border: none; border-radius: 8px; color: #fff;
+            padding: .4rem;
+            transition: opacity .2s;
+        }
+        .btn-save:hover { opacity: .85; }
+        .btn-save:disabled { opacity: .4; cursor: default; }
+        .btn-delete {
+            font-size: .78rem; font-weight: 600;
+            background: rgba(220,38,38,.15);
+            border: 1px solid rgba(220,38,38,.3);
+            border-radius: 8px; color: #f87171;
+            padding: .4rem .75rem;
+            transition: background .2s;
+        }
+        .btn-delete:hover { background: rgba(220,38,38,.3); }
+
+        .type-badge {
+            font-size: .65rem; font-weight: 700;
+            padding: 2px 8px; border-radius: 50px;
+            text-transform: uppercase;
+        }
+        .type-game { background: rgba(124,77,255,.2); color: #b39ddb; }
+        .type-site { background: rgba(0,188,212,.15); color: #80deea; }
+        .type-python { background: rgba(248,192,55,.15); color: #f8c037; }
+
+        .section-title {
+            font-size: 1.1rem; font-weight: 700;
+            border-left: 3px solid #7c4dff;
+            padding-left: .75rem; margin-bottom: 1.25rem;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            color: #fff; border-radius: 8px;
+            font-size: .82rem; padding: .35rem .85rem;
+            transition: background .2s;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,.12); }
+
+        #toastContainer {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9000;
+            display: flex; flex-direction: column; gap: .5rem;
+        }
+        .toast-msg {
+            background: rgba(30,30,50,.95);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px; padding: .6rem 1.1rem;
+            font-size: .82rem; color: #e0e0e0;
+            backdrop-filter: blur(10px);
+            animation: fadeInUp .25s ease;
+        }
+        .toast-msg.success { border-color: rgba(52,211,153,.4); color: #6ee7b7; }
+        .toast-msg.error   { border-color: rgba(248,113,113,.4); color: #fca5a5; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tab pills */
+        .tab-pill {
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 10px; color: #ccc;
+            padding: .45rem 1.1rem; font-size: .85rem; font-weight: 600;
+            cursor: pointer; transition: all .2s;
+        }
+        .tab-pill.active {
+            background: linear-gradient(135deg, #7c4dff22, #e040fb22);
+            border-color: #7c4dff; color: #fff;
+        }
+        .tab-pill:hover:not(.active) { background: rgba(255,255,255,.09); }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  LOGIN SCREEN                                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="loginScreen">
+    <div class="login-card">
+        <h2 class="text-white">🎓 Área dos Professores</h2>
+        <p>Acesso restrito – insira suas credenciais</p>
+        <form id="loginForm" novalidate>
+            <div class="mb-3">
+                <label class="form-label text-white-50" style="font-size:.8rem;">Usuário</label>
+                <input type="text" id="loginUser" class="form-control login-input"
+                    placeholder="usuário" autocomplete="username">
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-white-50" style="font-size:.8rem;">Senha</label>
+                <div class="position-relative">
+                    <input type="password" id="loginPass" class="form-control login-input"
+                        placeholder="••••••••" autocomplete="current-password">
+                    <button type="button" id="togglePass"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="btn login-btn w-100">Entrar</button>
+            <div id="loginError">❌ Usuário ou senha incorretos.</div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ADMIN PANEL                                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="adminPanel">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top glass-nav">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold fs-5" href="/">
+                <span class="text-gradient">Tec Senai</span> JC
+            </a>
+            <div class="d-flex align-items-center gap-3 ms-auto">
+                <a href="/" class="nav-link text-light opacity-75"><i class="bi bi-house me-1"></i>Início</a>
+                <span class="text-white-50" style="font-size:.8rem;">
+                    <i class="bi bi-person-circle me-1"></i>Prof. logado
+                </span>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="bi bi-box-arrow-right me-1"></i>Sair
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main style="padding-top: 80px;" class="container-fluid px-4 px-md-5 pb-5">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between py-4 mb-3">
+            <div>
+                <h1 class="fw-bold h3 mb-1">Painel de Administração</h1>
+                <p class="text-white-50 mb-0" style="font-size:.85rem;">
+                    Edite ou exclua jogos e sites enviados pelos alunos.
+                </p>
+            </div>
+            <div class="d-flex gap-2" id="tabBar">
+                <button class="tab-pill active" data-tab="games">
+                    <i class="bi bi-joystick me-1"></i>Jogos
+                    <span class="ms-1 badge bg-secondary rounded-pill" id="gamesCount">0</span>
+                </button>
+                <button class="tab-pill" data-tab="sites">
+                    <i class="bi bi-code-slash me-1"></i>Sites
+                    <span class="ms-1 badge bg-secondary rounded-pill" id="sitesCount">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Search bar -->
+        <div class="mb-4">
+            <div class="position-relative" style="max-width:360px;">
+                <i class="bi bi-search position-absolute"
+                   style="left:12px;top:50%;transform:translateY(-50%);opacity:.4;"></i>
+                <input type="text" id="adminSearch" class="form-control form-control-clean"
+                    placeholder="Buscar por título ou aluno..." style="padding-left:2.2rem;">
+            </div>
+        </div>
+
+        <!-- Cards grid -->
+        <div id="adminGrid" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4">
+            <!-- preenchido via JS -->
+        </div>
+
+        <div id="adminEmpty" class="text-center py-5 d-none">
+            <i class="bi bi-inbox display-2 text-muted"></i>
+            <p class="text-muted mt-3">Nenhum item encontrado.</p>
+        </div>
+
+        <div id="adminLoading" class="text-center py-5">
+            <div class="spinner-border text-secondary" role="status"></div>
+            <p class="text-muted mt-3">Carregando...</p>
+        </div>
+    </main>
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-clean">
+            <div class="modal-body p-4 text-center">
+                <i class="bi bi-trash3 display-4 text-danger mb-3"></i>
+                <h5 class="fw-bold mb-2">Confirmar exclusão</h5>
+                <p class="text-white-50 mb-4" id="deleteModalMsg">
+                    Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.
+                </p>
+                <div class="d-flex gap-3 justify-content-center">
+                    <button class="btn btn-outline-light px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-danger px-4" id="confirmDeleteBtn">Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Credenciais ────────────────────────────────────────────────
+const VALID_USER = 'professorsenaijc';
+const VALID_PASS = 'Seduquinho!2025';
+const SESSION_KEY = 'prof_auth_v1';
+
+// ── Login ──────────────────────────────────────────────────────
+const loginScreen  = document.getElementById('loginScreen');
+const adminPanel   = document.getElementById('adminPanel');
+const loginForm    = document.getElementById('loginForm');
+const loginError   = document.getElementById('loginError');
+const togglePass   = document.getElementById('togglePass');
+const logoutBtn    = document.getElementById('logoutBtn');
+
+function showPanel() {
+    loginScreen.style.display = 'none';
+    adminPanel.style.display  = 'block';
+    loadAll();
+}
+
+// Verifica se já está autenticado
+if (sessionStorage.getItem(SESSION_KEY) === '1') showPanel();
+
+loginForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    if (u === VALID_USER && p === VALID_PASS) {
+        sessionStorage.setItem(SESSION_KEY, '1');
+        loginError.style.display = 'none';
+        showPanel();
+    } else {
+        loginError.style.display = 'block';
+        document.getElementById('loginPass').value = '';
+    }
+});
+
+togglePass.addEventListener('click', () => {
+    const inp = document.getElementById('loginPass');
+    const icon = togglePass.querySelector('i');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        inp.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+});
+
+logoutBtn.addEventListener('click', () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    location.reload();
+});
+
+// ── Data ───────────────────────────────────────────────────────
+let allItems   = [];   // { ...game/site, _type: 'game'|'site' }
+let activeTab  = 'games';
+
+const TEACHERS = ['', 'Heberson', 'Guilherme', 'Francisco', 'Patrícia',
+                  'Agenor', 'Cleusa', 'Victor', 'Daniel'];
+const CATEGORIES = ['Ação', 'Puzzle', 'Aventura', 'Plataforma', 'RPG',
+                    'Corrida', 'Tiro', 'Estratégia', 'Esporte', 'Outro'];
+
+async function loadAll() {
+    document.getElementById('adminLoading').classList.remove('d-none');
+    document.getElementById('adminGrid').innerHTML  = '';
+    document.getElementById('adminEmpty').classList.add('d-none');
+    try {
+        const [gRes, sRes] = await Promise.all([
+            fetch('/api/games'), fetch('/api/sites')
+        ]);
+        const games = (await gRes.json()).map(g => ({ ...g, _type: 'game' }));
+        const sites = (await sRes.json()).map(s => ({ ...s, _type: 'site' }));
+        allItems = [...games, ...sites];
+        document.getElementById('gamesCount').textContent = games.length;
+        document.getElementById('sitesCount').textContent = sites.length;
+    } catch (err) {
+        console.error(err);
+        toast('Erro ao carregar dados: ' + err.message, 'error');
+    }
+    document.getElementById('adminLoading').classList.add('d-none');
+    renderGrid();
+}
+
+// ── Tabs ───────────────────────────────────────────────────────
+document.getElementById('tabBar').addEventListener('click', e => {
+    const pill = e.target.closest('.tab-pill');
+    if (!pill) return;
+    document.querySelectorAll('.tab-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    activeTab = pill.dataset.tab;
+    renderGrid();
+});
+
+// ── Search ─────────────────────────────────────────────────────
+document.getElementById('adminSearch').addEventListener('input', renderGrid);
+
+// ── Render ─────────────────────────────────────────────────────
+function renderGrid() {
+    const q    = document.getElementById('adminSearch').value.toLowerCase();
+    const grid = document.getElementById('adminGrid');
+    grid.innerHTML = '';
+
+    const filtered = allItems.filter(item => {
+        if (activeTab === 'games' && item._type !== 'game') return false;
+        if (activeTab === 'sites' && item._type !== 'site') return false;
+        if (q && !(item.title || '').toLowerCase().includes(q) &&
+                 !(item.author || '').toLowerCase().includes(q)) return false;
+        return true;
+    });
+
+    document.getElementById('adminEmpty').classList.toggle('d-none', filtered.length > 0);
+
+    filtered.forEach(item => {
+        const col = document.createElement('div');
+        col.className = 'col';
+        col.innerHTML = buildCard(item);
+        grid.appendChild(col);
+        attachCardListeners(col, item);
+    });
+}
+
+function buildCard(item) {
+    const id      = item.docId || item.id;
+    const type    = item._type;
+    const isGame  = type === 'game';
+    const isPy    = item.gameType === 'python';
+    const cover   = item.coverUrl ||
+        `https://source.unsplash.com/400x220/?${encodeURIComponent(item.category || 'game')},game`;
+
+    const teacherOptions = TEACHERS.map(t =>
+        `<option value="${t}" ${item.teacher === t ? 'selected' : ''}>${t || '– sem professor –'}</option>`
+    ).join('');
+
+    const categoryOptions = CATEGORIES.map(c =>
+        `<option value="${c}" ${item.category === c ? 'selected' : ''}>${c}</option>`
+    ).join('');
+
+    const typeBadge = isPy
+        ? '<span class="type-badge type-python">🐍 Python</span>'
+        : isGame
+            ? '<span class="type-badge type-game">🎮 Jogo</span>'
+            : '<span class="type-badge type-site">🌐 Site</span>';
+
+    return `
+    <div class="admin-card" data-id="${id}" data-type="${type}">
+        <div class="position-relative">
+            <img src="${cover}" class="admin-cover"
+                 onerror="this.src='https://via.placeholder.com/400x140?text=${encodeURIComponent(item.title || 'Sem título')}'">
+            <div style="position:absolute;top:8px;left:8px;">${typeBadge}</div>
+        </div>
+        <div class="admin-body">
+            <div class="mb-2">
+                <div class="admin-field-label">Título</div>
+                <input class="admin-field-value" data-field="title"
+                       value="${escHtml(item.title || '')}" placeholder="Título do jogo">
+            </div>
+            <div class="mb-2">
+                <div class="admin-field-label">Desenvolvedor / Aluno</div>
+                <input class="admin-field-value" data-field="author"
+                       value="${escHtml(item.author || '')}" placeholder="Nome do aluno">
+            </div>
+            <div class="mb-2">
+                <div class="admin-field-label">Categoria</div>
+                <select class="admin-field-value" data-field="category">${categoryOptions}</select>
+            </div>
+            <div class="mb-2">
+                <div class="admin-field-label">Turma</div>
+                <input class="admin-field-value" data-field="studentClass"
+                       value="${escHtml(item.studentClass || '')}" placeholder="Ex: 2° Ano A">
+            </div>
+            <div class="mb-2">
+                <div class="admin-field-label">Professor</div>
+                <select class="admin-field-value" data-field="teacher">${teacherOptions}</select>
+            </div>
+            <div class="mb-0">
+                <div class="admin-field-label">Escola</div>
+                <input class="admin-field-value" data-field="school"
+                       value="${escHtml(item.school || '')}" placeholder="Nome da escola">
+            </div>
+        </div>
+        <div class="admin-actions">
+            <button class="btn-save" data-id="${id}" data-type="${type}" disabled>
+                <i class="bi bi-check2-circle me-1"></i>Salvar
+            </button>
+            <button class="btn-delete" data-id="${id}" data-type="${type}" title="Excluir">
+                <i class="bi bi-trash3"></i>
+            </button>
+        </div>
+    </div>`;
+}
+
+function attachCardListeners(col, item) {
+    const card    = col.querySelector('.admin-card');
+    const saveBtn = col.querySelector('.btn-save');
+    const delBtn  = col.querySelector('.btn-delete');
+    const fields  = col.querySelectorAll('.admin-field-value');
+
+    // Habilita botão Salvar quando qualquer campo muda
+    fields.forEach(f => {
+        f.addEventListener('input',  () => saveBtn.disabled = false);
+        f.addEventListener('change', () => saveBtn.disabled = false);
+    });
+
+    // Salvar
+    saveBtn.addEventListener('click', async () => {
+        const id   = saveBtn.dataset.id;
+        const type = saveBtn.dataset.type;
+        const patch = {};
+        fields.forEach(f => { patch[f.dataset.field] = f.value; });
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Salvando...';
+
+        const endpoint = type === 'game'
+            ? `/api/games/${id}`
+            : `/api/sites/${id}`;
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patch)
+            });
+            if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+
+            // Atualiza item local
+            const idx = allItems.findIndex(i => (i.docId || i.id) === id);
+            if (idx !== -1) Object.assign(allItems[idx], patch);
+
+            toast('✅ Alterações salvas com sucesso!', 'success');
+        } catch (err) {
+            toast('❌ Erro ao salvar: ' + err.message, 'error');
+            saveBtn.disabled = false;
+        }
+        saveBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i>Salvar';
+    });
+
+    // Excluir
+    delBtn.addEventListener('click', () => {
+        const id   = delBtn.dataset.id;
+        const type = delBtn.dataset.type;
+        const name = col.querySelector('[data-field="title"]').value || id;
+
+        document.getElementById('deleteModalMsg').textContent =
+            `Excluir "${name}"? Esta ação não pode ser desfeita.`;
+
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        const handler = async () => {
+            confirmBtn.removeEventListener('click', handler);
+            modal.hide();
+
+            const endpoint = type === 'game'
+                ? `/api/games/${id}`
+                : `/api/sites/${id}`;
+
+            try {
+                const res = await fetch(endpoint, { method: 'DELETE' });
+                if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+                allItems = allItems.filter(i => (i.docId || i.id) !== id);
+                document.getElementById('gamesCount').textContent =
+                    allItems.filter(i => i._type === 'game').length;
+                document.getElementById('sitesCount').textContent =
+                    allItems.filter(i => i._type === 'site').length;
+                col.style.transition = 'opacity .3s, transform .3s';
+                col.style.opacity    = '0';
+                col.style.transform  = 'scale(.95)';
+                setTimeout(() => { col.remove(); renderGrid(); }, 320);
+                toast('🗑️ Item excluído com sucesso!', 'success');
+            } catch (err) {
+                toast('❌ Erro ao excluir: ' + err.message, 'error');
+            }
+        };
+        confirmBtn.addEventListener('click', handler);
+    });
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+function toast(msg, type = '') {
+    const el = document.createElement('div');
+    el.className = `toast-msg ${type}`;
+    el.textContent = msg;
+    document.getElementById('toastContainer').appendChild(el);
+    setTimeout(() => {
+        el.style.transition = 'opacity .3s';
+        el.style.opacity    = '0';
+        setTimeout(() => el.remove(), 320);
+    }, 3500);
+}
+
+// ── Util ───────────────────────────────────────────────────────
+function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+                      .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
