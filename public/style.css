@@ -250,6 +250,34 @@
      color: #fff;
  }
 
+ /* Estilos melhorados para select com textos longos */
+ .form-select.form-control-clean {
+     min-height: 44px;
+     padding: 10px 16px;
+ }
+
+ .form-select.form-control-clean option {
+     background: var(--bg-input);
+     color: #fff;
+     padding: 8px 16px;
+     min-height: auto;
+     white-space: normal;
+     word-wrap: break-word;
+ }
+
+ /* Estilo para o elemento select em si */
+ select.form-control-clean {
+     width: 100%;
+     box-sizing: border-box;
+     overflow: hidden;
+     text-overflow: ellipsis;
+ }
+
+ #classSelect,
+ #filterYear {
+     min-height: 44px;
+ }
+
  #gameFrame {
      width: 100%;
      height: 100%;
