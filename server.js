@@ -363,6 +363,46 @@ function generatePygbagRunner(mainPyName, gameFolder) {
             // Muda o diretório de trabalho para /game — caminhos relativos funcionam
             pyodide.runPython('import os; os.chdir("/game")');
 
+            // ── Injeta mocks de módulos específicos do Windows ───────────────
+            // Estes módulos não existem no Pyodide (browser), mas são comuns
+            // em jogos feitos no Windows. Os mocks silenciam ImportError.
+            await pyodide.runPythonAsync(\`
+import sys, types
+
+def _mk(name, **attrs):
+    m = types.ModuleType(name)
+    for k, v in attrs.items(): setattr(m, k, v)
+    sys.modules[name] = m
+
+_noop = lambda *a, **kw: None
+
+# winsound — sons do sistema Windows
+_mk('winsound',
+    Beep=_noop, PlaySound=_noop, MessageBeep=_noop,
+    SND_FILENAME=0x20000, SND_ALIAS=0x10000, SND_LOOP=0x8,
+    SND_MEMORY=0x4,       SND_NODEFAULT=0x2, SND_NOSTOP=0x10,
+    SND_NOWAIT=0x2000,    SND_PURGE=0x40,    SND_ASYNC=0x1,
+    SND_APPLICATION=0x80,
+)
+
+# winreg — registro do Windows
+_mk('winreg',
+    OpenKey=_noop, CloseKey=_noop, QueryValueEx=lambda *a,**k: ('',0),
+    SetValueEx=_noop, CreateKey=_noop, DeleteKey=_noop,
+    HKEY_CURRENT_USER=0x80000001, HKEY_LOCAL_MACHINE=0x80000002,
+    REG_SZ=1, REG_DWORD=4,
+)
+
+# msvcrt — E/S de console do Windows
+_mk('msvcrt',
+    getch=lambda: b'', kbhit=lambda: False, getwch=lambda: '',
+    putch=_noop, putwch=_noop,
+)
+
+del _mk, _noop
+\`);
+            // ─────────────────────────────────────────────────────────────────
+
             setProgress(90, 'Executando jogo...');
 
             // Esconde o painel quando o canvas aparecer
