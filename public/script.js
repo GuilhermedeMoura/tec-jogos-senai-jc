@@ -38,8 +38,10 @@ if (citySelect && schoolSelect && classSelect) {
         if (schoolSelect.value !== '') {
             classSelect.innerHTML = `
             <option value="">Selecione...</option>
-            <option value="1° Ano">1° Ano</option>
-            <option value="2° Ano">2° Ano</option>
+            <option value="1° TJ Ano">1° Ano</option>
+            <option value="1° DS Ano">1° Ano</option>
+            <option value="2° TJ Ano">2° Ano</option>
+            <option value="2° DS Ano">2° Ano</option>
             `;
         }
     });
