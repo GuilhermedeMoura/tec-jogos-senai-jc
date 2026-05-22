@@ -199,9 +199,16 @@
                                     </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">Arquivo ZIP ou HTML</label>
+                                    <label class="form-label text-secundary small">
+                                        Arquivo do Site
+                                        <span class="ms-1" style="font-size:.7rem;opacity:.6;">.zip &bull; .html</span>
+                                    </label>
                                     <input type="file" name="gameFile" class="form-control form-control-clean"
                                         id="gameFile" accept=".zip,.html" required>
+                                    <div class="mt-1" style="font-size:.72rem;opacity:.55;">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        ZIP com múltiplos arquivos ou HTML único
+                                    </div>
                                 </div>
                                 <!-- Imagem de Capa (Opcional) -->
                                 <div class="mb-4">
@@ -255,10 +262,19 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Dados das escolas (espelho do index.html)
+        // Dados das escolas — espelho exato do script.js
         const schoolsData = {
-            'Goiania': ['Colégio Estadual Nazir Safatle'],
-            'Trindade': ['CEPI Abrão Manoel da Costa', 'Colégio Estadual José Ludovico de Almeida']
+            'Goiania': [
+                'Colégio Estadual Nazir Safatle',
+                'Colégio Estadual Verany Machado De Oliveira',
+                'Colégio Estadual João Bênio',
+                'Colégio Estadual Edmundo Rocha'
+            ],
+            'Trindade': [
+                'CEPI Abrão Manoel da Costa',
+                'Colégio Estadual Padre Pelágio',
+                'Colégio Estadual Alfa Ômega'
+            ]
         };
 
         // DOM Elements
@@ -302,8 +318,10 @@
             if (schoolSelect.value !== '') {
                 classSelect.innerHTML = `
                     <option value="">Selecione...</option>
-                    <option value="1° Ano">1° Ano</option>
-                    <option value="2° Ano">2° Ano</option>
+                    <option value="1° Ano Técnico em Programação de Jogos Digitais">1° Ano Técnico em Programação de Jogos Digitais</option>
+                    <option value="1° Ano Técnico em Desenvolvimento de Sistemas">1° Ano Técnico em Desenvolvimento de Sistemas</option>
+                    <option value="2° Ano Técnico em Programação de Jogos Digitais">2° Ano Técnico em Programação de Jogos Digitais</option>
+                    <option value="2° Ano Técnico em Desenvolvimento de Sistemas">2° Ano Técnico em Desenvolvimento de Sistemas</option>
                 `;
             }
         });
@@ -390,7 +408,7 @@
                 coverPreview.src = '';
                 coverPreviewWrapper.classList.add('d-none');
                 schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
-                classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+                classSelect.innerHTML  = '<option value="">Selecione a escola primeiro</option>';
 
                 setTimeout(() => {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));

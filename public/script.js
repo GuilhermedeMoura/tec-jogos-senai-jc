@@ -5,8 +5,17 @@ const noResultsState = document.getElementById('noResultsState');
 
 // Dados compartilhados entre formulário de upload e barra de filtros
 const schoolsData = {
-    'Goiania': ['Colégio Estadual Nazir Safatle','Colégio Estadual Verany Machado De Oliveira', 'Colégio Estadual João Bênnio','Colégio Estadual Edmundo Rocha'],
-    'Trindade': ['CEPI Abrão Manoel da Costa', 'Colégio Estadual Padre Pelágio', 'Colégio Estadual Alfa Ômega']
+    'Goiania': [
+        'Colégio Estadual Nazir Safatle',
+        'Colégio Estadual Verany Machado De Oliveira',
+        'Colégio Estadual João Bênio',
+        'Colégio Estadual Edmundo Rocha'
+    ],
+    'Trindade': [
+        'CEPI Abrão Manoel da Costa',
+        'Colégio Estadual Padre Pelágio',
+        'Colégio Estadual Alfa Ômega'
+    ]
 };
 
 document.addEventListener('DOMContentLoaded', loadGames);
