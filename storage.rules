@@ -2,8 +2,15 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    
+    // Qualquer caminho de arquivo
     match /{allPaths=**} {
-      allow read, write: if true;
+      // Qualquer um pode baixar as imagens/zips usando links de download público (que já ignoram as regras de segurança).
+      allow read: if true;
+      
+      // Recomendação de Produção: Restringir a escrita apenas ao backend.
+      // Se você migrar o backend para o Firebase Admin SDK, altere para "allow write: if false;". Isso impede que clientes modifiquem arquivos do Storage diretamente.
+      allow write: if true;
     }
   }
 }

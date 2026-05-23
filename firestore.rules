@@ -1,11 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Coleção de jogos
     match /games/{gameId} {
-      allow read, write: if true;
+      // Qualquer um pode visualizar os jogos listados
+      allow read: if true;
+      
+      // Recomendação de Produção: Restringir a escrita apenas ao backend.
+      // Atualmente, como o servidor backend usa o SDK de cliente anonimamente, a regra abaixo está aberta para permitir uploads.
+      // Se você migrar para o Firebase Admin SDK no backend, mude para: "allow write: if false;" (o Admin SDK ignora as regras e o cliente público não conseguirá burlar o backend).
+      allow write: if true;
     }
+    
+    // Coleção de sites
     match /sites/{siteId} {
-      allow read, write: if true;
+      // Qualquer um pode visualizar os sites listados
+      allow read: if true;
+      
+      // Recomendação de Produção: Restringir a escrita apenas ao backend.
+      allow write: if true;
     }
   }
 }

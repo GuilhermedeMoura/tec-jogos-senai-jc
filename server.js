@@ -33,6 +33,88 @@ getDocs(collection(db, "games")).then(() => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.disable('x-powered-by');
+
+// --- IN-MEMORY RATE LIMITER ---
+const ipRequests = new Map();
+function rateLimiter(maxRequests, windowMs) {
+    return (req, res, next) => {
+        const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const now = Date.now();
+        
+        if (!ipRequests.has(ip)) {
+            ipRequests.set(ip, []);
+        }
+        
+        let timestamps = ipRequests.get(ip).filter(t => now - t < windowMs);
+        timestamps.push(now);
+        ipRequests.set(ip, timestamps);
+        
+        if (timestamps.length > maxRequests) {
+            return res.status(429).json({ 
+                error: 'Muitas requisições enviadas. Por favor, tente novamente mais tarde.' 
+            });
+        }
+        
+        next();
+    };
+}
+
+// --- INPUT SANITIZER ---
+function sanitizeInput(text, maxLength = 100) {
+    if (typeof text !== 'string') return '';
+    return text
+        .trim()
+        .slice(0, maxLength)
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/\//g, '&#x2F;');
+}
+
+// --- ZIP ARCHIVE SECURITY VALIDATOR (Zip Bomb, Zip Slip, Malware) ---
+function validateZipArchive(filePath, maxUncompressedSize = 100 * 1024 * 1024, maxFilesCount = 1000) {
+    try {
+        const zip = new AdmZip(filePath);
+        const entries = zip.getEntries();
+        
+        if (entries.length > maxFilesCount) {
+            throw new Error(`O arquivo ZIP contém muitos arquivos (${entries.length}). O limite é ${maxFilesCount}.`);
+        }
+        
+        let totalUncompressedSize = 0;
+        
+        for (const entry of entries) {
+            if (entry.isDirectory) continue;
+            
+            const uncompressedSize = entry.header.size;
+            totalUncompressedSize += uncompressedSize;
+            
+            if (totalUncompressedSize > maxUncompressedSize) {
+                throw new Error(`O tamanho total descompactado excede o limite permitido de ${maxUncompressedSize / (1024 * 1024)} MB (possível Zip Bomb).`);
+            }
+            
+            const entryName = entry.entryName;
+            
+            // Zip Slip / Path Traversal Defense
+            if (entryName.includes('..') || entryName.startsWith('/') || entryName.includes('\\..') || entryName.includes('../')) {
+                throw new Error(`Arquivo inválido ou tentativa de Path Traversal no ZIP: ${entryName}`);
+            }
+            
+            // Dangerous file extensions block
+            const ext = path.extname(entryName).toLowerCase();
+            const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.php', '.asp', '.aspx', '.jsp', '.jar', '.dll', '.lnk', '.vbs', '.scr', '.pif'];
+            if (dangerousExtensions.includes(ext)) {
+                throw new Error(`O ZIP contém arquivos perigosos não permitidos: ${entryName}`);
+            }
+        }
+        return true;
+    } catch (err) {
+        throw new Error(err.message || 'Falha ao validar o arquivo ZIP.');
+    }
+}
+
 const UPLOADS_FOLDER = 'uploads_zips';
 const GAMES_FOLDER = 'public/games';
 const SITES_FOLDER = 'public/sites';
@@ -43,14 +125,19 @@ if (!fs.existsSync(SITES_FOLDER)) fs.mkdirSync(SITES_FOLDER, { recursive: true }
 
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        if (file.fieldname === 'coverImage') return cb(null, UPLOADS_FOLDER);
         cb(null, UPLOADS_FOLDER);
     },
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
-const upload = multer({
+
+const uploadGame = multer({
     storage: diskStorage,
-    limits: { fileSize: 200 * 1024 * 1024 } // 200 MB
+    limits: { fileSize: 105 * 1024 * 1024 } // 105 MB
+});
+
+const uploadSite = multer({
+    storage: diskStorage,
+    limits: { fileSize: 55 * 1024 * 1024 } // 55 MB
 });
 
 app.use(express.json());
@@ -577,13 +664,76 @@ app.use('/sites/:siteId', async (req, res, next) => {
 // Serve sites statically
 app.use('/sites', express.static(SITES_FOLDER));
 
-app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
-    try {
-        const { gameTitle, authorName, gameCategory, city, school, studentClass, teacher } = req.body;
-        const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
-        const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
+app.post('/upload', rateLimiter(5, 60 * 60 * 1000), uploadGame.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+    const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
+    const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
-        if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    try {
+        const gameTitle = sanitizeInput(req.body.gameTitle, 50);
+        const authorName = sanitizeInput(req.body.authorName, 50);
+        const gameCategory = sanitizeInput(req.body.gameCategory, 30);
+        const city = sanitizeInput(req.body.city, 30);
+        const school = sanitizeInput(req.body.school, 100);
+        const studentClass = sanitizeInput(req.body.studentClass, 100);
+        const teacher = sanitizeInput(req.body.teacher, 30);
+
+        if (!file) {
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+
+        if (!gameTitle || !authorName || !gameCategory || !city || !school || !studentClass || !teacher) {
+            try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Campos obrigatórios inválidos ou vazios.' });
+        }
+
+        // Validate cover
+        if (coverFile) {
+            const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const ext = path.extname(coverFile.originalname).toLowerCase();
+            const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+            if (!allowedMimes.includes(coverFile.mimetype) || !allowedExts.includes(ext)) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa deve ser um formato de imagem válido (JPG, PNG, GIF, WEBP).' });
+            }
+            if (coverFile.size > 5 * 1024 * 1024) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa não deve exceder 5 MB.' });
+            }
+        }
+
+        // Validate game file extension and size bounds
+        const gameExt = path.extname(file.originalname).toLowerCase();
+        if (!['.zip', '.html', '.py'].includes(gameExt)) {
+            try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Arquivo inválido. Formatos permitidos: .zip, .html, .py' });
+        }
+
+        if (gameExt === '.html' || gameExt === '.py') {
+            if (file.size > 5 * 1024 * 1024) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'Arquivos individuais (.html, .py) não devem exceder 5 MB.' });
+            }
+        } else if (gameExt === '.zip') {
+            if (file.size > 100 * 1024 * 1024) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'O arquivo ZIP do jogo não deve exceder 100 MB.' });
+            }
+            // Defesas Zip Bomb / Zip Slip / Malware
+            try {
+                validateZipArchive(file.path, 150 * 1024 * 1024, 1500);
+            } catch (zipErr) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: `ZIP inválido: ${zipErr.message}` });
+            }
+        }
 
         const gameId = slugify(gameTitle) + '-' + Date.now().toString();
         const localGamePath = path.join(GAMES_FOLDER, gameId);
@@ -665,10 +815,9 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
             }
         } catch (uploadErr) {
             console.error('[Error] Failed to upload to Firebase Storage:', uploadErr.message);
-            // Continue anyway - Firestore will have the metadata
         }
 
-        fs.unlinkSync(file.path);
+        try { fs.unlinkSync(file.path); } catch (_) {}
 
         if (!indexHtmlPath || !fs.existsSync(path.join(localGamePath, 'index.html'))) {
             fs.rmSync(localGamePath, { recursive: true, force: true });
@@ -686,8 +835,6 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
             }
         }
 
-        // Para ZIPs HTML com subpastas (ex: Unity/Godot), re-empacota após reorganizar
-        // para que o Firebase Storage tenha sempre index.html na raiz
         if (gameType === 'html' && file.originalname.toLowerCase().endsWith('.zip') && indexInfo && indexInfo.dirPath !== localGamePath) {
             try {
                 const repackZip = new AdmZip();
@@ -710,11 +857,10 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
                 const coverMime = coverFile.mimetype || 'image/jpeg';
                 await uploadBytes(coverStorageRef, coverBuffer, { contentType: coverMime });
                 coverUrl = await getDownloadURL(coverStorageRef);
-                fs.unlinkSync(coverFile.path);
                 console.log(`[Storage] Cover image uploaded for game ${gameId}: ${coverUrl.substring(0, 60)}...`);
             } catch (coverErr) {
                 console.error('[Error] Failed to upload cover image to Firebase Storage:', coverErr.message);
-                // coverUrl permanece null — sem capa é aceitável
+            } finally {
                 try { fs.unlinkSync(coverFile.path); } catch (_) {}
             }
         }
@@ -747,6 +893,8 @@ app.post('/upload', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'c
 
         res.status(200).json({ message: 'Jogo enviado com sucesso!', game: { ...newGame, docId: docRef.id } });
     } catch (error) {
+        if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+        if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
         console.error('[Error] Upload failed:', error);
         res.status(500).json({ error: 'Erro ao processar o jogo: ' + error.message });
     }
@@ -803,13 +951,76 @@ app.get('/api/games', async (req, res) => {
 // SITES ROUTES
 // ============================================================
 
-app.post('/upload-site', upload.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
-    try {
-        const { gameTitle, authorName, gameCategory, city, school, studentClass, teacher } = req.body;
-        const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
-        const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
+app.post('/upload-site', rateLimiter(5, 60 * 60 * 1000), uploadSite.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+    const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
+    const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
-        if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    try {
+        const gameTitle = sanitizeInput(req.body.gameTitle, 50);
+        const authorName = sanitizeInput(req.body.authorName, 50);
+        const gameCategory = sanitizeInput(req.body.gameCategory, 30);
+        const city = sanitizeInput(req.body.city, 30);
+        const school = sanitizeInput(req.body.school, 100);
+        const studentClass = sanitizeInput(req.body.studentClass, 100);
+        const teacher = sanitizeInput(req.body.teacher, 30);
+
+        if (!file) {
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+
+        if (!gameTitle || !authorName || !gameCategory || !city || !school || !studentClass || !teacher) {
+            try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Campos obrigatórios inválidos ou vazios.' });
+        }
+
+        // Validate cover
+        if (coverFile) {
+            const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const ext = path.extname(coverFile.originalname).toLowerCase();
+            const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+            if (!allowedMimes.includes(coverFile.mimetype) || !allowedExts.includes(ext)) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa deve ser um formato de imagem válido (JPG, PNG, GIF, WEBP).' });
+            }
+            if (coverFile.size > 5 * 1024 * 1024) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa não deve exceder 5 MB.' });
+            }
+        }
+
+        // Validate site file
+        const gameExt = path.extname(file.originalname).toLowerCase();
+        if (!['.zip', '.html'].includes(gameExt)) {
+            try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Arquivo inválido. Formatos permitidos para sites: .zip, .html' });
+        }
+
+        if (gameExt === '.html') {
+            if (file.size > 5 * 1024 * 1024) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'Arquivos HTML individuais não devem exceder 5 MB.' });
+            }
+        } else if (gameExt === '.zip') {
+            if (file.size > 50 * 1024 * 1024) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'O arquivo ZIP do site não deve exceder 50 MB.' });
+            }
+            // Defesas Zip Bomb / Zip Slip / Malware
+            try {
+                validateZipArchive(file.path, 80 * 1024 * 1024, 1000);
+            } catch (zipErr) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: `ZIP inválido: ${zipErr.message}` });
+            }
+        }
 
         const siteId = slugify(gameTitle) + '-' + Date.now().toString();
         const localSitePath = path.join(SITES_FOLDER, siteId);
@@ -856,7 +1067,7 @@ app.post('/upload-site', upload.fields([{ name: 'gameFile', maxCount: 1 }, { nam
             console.error('[Error] Failed to upload site to Firebase Storage:', uploadErr.message);
         }
 
-        fs.unlinkSync(file.path);
+        try { fs.unlinkSync(file.path); } catch (_) {}
 
         if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, indexInfo ? indexInfo.fileName : 'index.html'))) {
             fs.rmSync(localSitePath, { recursive: true, force: true });
@@ -880,10 +1091,10 @@ app.post('/upload-site', upload.fields([{ name: 'gameFile', maxCount: 1 }, { nam
                 const coverMime = coverFile.mimetype || 'image/jpeg';
                 await uploadBytes(coverStorageRef, coverBuffer, { contentType: coverMime });
                 coverUrl = await getDownloadURL(coverStorageRef);
-                fs.unlinkSync(coverFile.path);
                 console.log(`[Storage] Cover image uploaded for site ${siteId}`);
             } catch (coverErr) {
                 console.error('[Error] Failed to upload site cover:', coverErr.message);
+            } finally {
                 try { fs.unlinkSync(coverFile.path); } catch (_) {}
             }
         }
@@ -913,6 +1124,8 @@ app.post('/upload-site', upload.fields([{ name: 'gameFile', maxCount: 1 }, { nam
 
         res.status(200).json({ message: 'Site enviado com sucesso!', site: { ...newSite, docId: docRef.id } });
     } catch (error) {
+        if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+        if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
         console.error('[Error] Site upload failed:', error);
         res.status(500).json({ error: 'Erro ao processar o site: ' + error.message });
     }
@@ -965,7 +1178,7 @@ app.get('/api/sites', async (req, res) => {
 });
 
 // Incrementa contador de visualizações de sites
-app.post('/api/sites/:siteId/view', async (req, res) => {
+app.post('/api/sites/:siteId/view', rateLimiter(30, 60 * 1000), async (req, res) => {
     try {
         const siteId = req.params.siteId;
         const q = query(collection(db, 'sites'));
@@ -983,13 +1196,15 @@ app.post('/api/sites/:siteId/view', async (req, res) => {
 });
 
 // Edita metadados de um site (painel de professores)
-app.patch('/api/sites/:siteId', async (req, res) => {
+app.patch('/api/sites/:siteId', rateLimiter(10, 60 * 1000), async (req, res) => {
     try {
         const siteId = req.params.siteId;
         const allowed = ['title', 'author', 'category', 'studentClass', 'teacher', 'school', 'city'];
         const patch = {};
         for (const key of allowed) {
-            if (req.body[key] !== undefined) patch[key] = req.body[key];
+            if (req.body[key] !== undefined) {
+                patch[key] = sanitizeInput(req.body[key], key === 'school' || key === 'studentClass' ? 100 : 50);
+            }
         }
         if (Object.keys(patch).length === 0)
             return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
@@ -1011,7 +1226,7 @@ app.patch('/api/sites/:siteId', async (req, res) => {
     }
 });
 
-app.delete('/api/sites/:siteId', async (req, res) => {
+app.delete('/api/sites/:siteId', rateLimiter(10, 60 * 1000), async (req, res) => {
     try {
         const siteId = req.params.siteId;
         console.log(`[Delete] Attempting to delete site: ${siteId}`);
@@ -1058,7 +1273,7 @@ app.delete('/api/sites/:siteId', async (req, res) => {
 });
 
 // Incrementa contador de partidas de jogos
-app.post('/api/games/:gameId/play', async (req, res) => {
+app.post('/api/games/:gameId/play', rateLimiter(30, 60 * 1000), async (req, res) => {
     try {
         const gameId = req.params.gameId;
         const q = query(collection(db, 'games'));
@@ -1076,13 +1291,15 @@ app.post('/api/games/:gameId/play', async (req, res) => {
 });
 
 // Edita metadados de um jogo (painel de professores)
-app.patch('/api/games/:gameId', async (req, res) => {
+app.patch('/api/games/:gameId', rateLimiter(10, 60 * 1000), async (req, res) => {
     try {
         const gameId = req.params.gameId;
         const allowed = ['title', 'author', 'category', 'studentClass', 'teacher', 'school', 'city'];
         const patch = {};
         for (const key of allowed) {
-            if (req.body[key] !== undefined) patch[key] = req.body[key];
+            if (req.body[key] !== undefined) {
+                patch[key] = sanitizeInput(req.body[key], key === 'school' || key === 'studentClass' ? 100 : 50);
+            }
         }
         if (Object.keys(patch).length === 0)
             return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
@@ -1104,7 +1321,7 @@ app.patch('/api/games/:gameId', async (req, res) => {
     }
 });
 
-app.delete('/api/games/:gameId', async (req, res) => {
+app.delete('/api/games/:gameId', rateLimiter(10, 60 * 1000), async (req, res) => {
     try {
         const gameId = req.params.gameId;
         console.log(`[Delete] Attempting to delete game: ${gameId}`);
@@ -1116,7 +1333,6 @@ app.delete('/api/games/:gameId', async (req, res) => {
         let gameDataId = null;
         
         snapshot.forEach((docSnap) => {
-            // Verifica pelo docId do Firebase OU pelo id antigo
             if (docSnap.id === gameId || String(docSnap.data().id) === String(gameId)) {
                 targetDocId = docSnap.id;
                 gameDataId = docSnap.data().id;
