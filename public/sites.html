@@ -24,7 +24,8 @@
             </a>
             <div class="d-flex align-items-center gap-3">
                 <a href="/" class="nav-link text-light opacity-75"><i class="bi bi-joystick me-1"></i>Jogos</a>
-                <a href="/sites.html" class="nav-link text-light fw-semibold"><i class="bi bi-code-slash me-1"></i>Sites</a>
+                <a href="/sites.html" class="nav-link text-light fw-semibold"><i
+                        class="bi bi-code-slash me-1"></i>Sites</a>
                 <button class="btn btn-modern-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-upload"></i> Enviar Site
                 </button>
@@ -88,9 +89,14 @@
                     <label for="filterYear" class="form-label">Ano</label>
                     <select id="filterYear" class="form-select form-control-clean">
                         <option value="">Todos</option>
-                        <option value="1° Ano">1° Ano</option>
-                        <option value="2° Ano">2° Ano</option>
-                        <option value="3° Ano">3° Ano</option>
+                        <option value="1° Ano Técnico em Programação de Jogos Digitais">1° Ano Técnico em Programação de
+                            Jogos Digitais</option>
+                        <option value="1° Ano Técnico em Desenvolvimento de Sistemas">1° Ano Técnico em Desenvolvimento
+                            de Sistemas</option>
+                        <option value="2° Ano Técnico em Programação de Jogos Digitais">2° Ano Técnico em Programação de
+                            Jogos Digitais</option>
+                        <option value="2° Ano Técnico em Desenvolvimento de Sistemas">2° Ano Técnico em Desenvolvimento
+                            de Sistemas</option>
                     </select>
                 </div>
                 <!-- Botão Limpar Filtros -->
@@ -117,6 +123,9 @@
             <h3 class="mt-3">Nenhum resultado encontrado</h3>
             <p class="text-muted">Tente ajustar os filtros ou os termos da pesquisa.</p>
         </div>
+
+        <!-- Container de Paginação -->
+        <div id="paginationContainer" class="pagination-container"></div>
     </main>
 
     <!-- Modal Upload -->
@@ -220,8 +229,10 @@
                                         id="coverImage" accept="image/*">
                                     <!-- Preview da imagem -->
                                     <div id="coverPreviewWrapper" class="mt-2 d-none">
-                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
-                                            <img id="coverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                        <div
+                                            style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="coverPreview" src="" alt="Preview"
+                                                style="width:100%; height:120px; object-fit:cover; display:block;">
                                             <button type="button" id="removeCoverBtn" title="Remover imagem"
                                                 style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border:none;color:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
                                                 <i class="bi bi-x"></i>
@@ -253,8 +264,12 @@
                         <i class="bi bi-x-lg me-2"></i> Fechar
                     </button>
                 </div>
-                <div class="modal-body p-0 d-flex justify-content-center align-items-center bg-black" style="overflow: hidden;">
-                    <iframe id="gameFrame" src="" frameborder="0" class="w-100 h-100" allow="autoplay; fullscreen; xr-spatial-tracking; execution-while-not-rendered; execution-while-out-of-viewport" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation" style="border:none;"></iframe>
+                <div class="modal-body p-0 d-flex justify-content-center align-items-center bg-black"
+                    style="overflow: hidden;">
+                    <iframe id="gameFrame" src="" frameborder="0" class="w-100 h-100"
+                        allow="autoplay; fullscreen; xr-spatial-tracking; execution-while-not-rendered; execution-while-out-of-viewport"
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-presentation"
+                        style="border:none;"></iframe>
                 </div>
             </div>
         </div>
@@ -281,11 +296,18 @@
         const gamesContainer = document.getElementById('gamesContainer');
         const emptyState = document.getElementById('emptyState');
         const noResultsState = document.getElementById('noResultsState');
+        const paginationContainer = document.getElementById('paginationContainer');
         const searchInput = document.getElementById('searchInput');
         const filterCity = document.getElementById('filterCity');
         const filterSchool = document.getElementById('filterSchool');
         const filterYear = document.getElementById('filterYear');
         const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+        // Estado da Paginação e Filtros
+        let allSites = [];
+        let filteredSites = [];
+        let currentPage = 1;
+        const itemsPerPage = 8;
         const citySelect = document.getElementById('citySelect');
         const schoolSelect = document.getElementById('schoolSelect');
         const classSelect = document.getElementById('classSelect');
@@ -296,7 +318,7 @@
         const removeCoverBtn = document.getElementById('removeCoverBtn');
         const uploadStatus = document.getElementById('uploadStatus');
 
-        
+
         // ---- LÓGICA DO MODAL DE UPLOAD (cidade → escola → turma) ----
         citySelect.addEventListener('change', () => {
             schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
@@ -396,7 +418,7 @@
                             const errorData = await response.json();
                             errorMsg = errorData.error || errorMsg;
                         }
-                    } catch (_) {}
+                    } catch (_) { }
                     throw new Error(errorMsg);
                 }
 
@@ -408,7 +430,7 @@
                 coverPreview.src = '';
                 coverPreviewWrapper.classList.add('d-none');
                 schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
-                classSelect.innerHTML  = '<option value="">Selecione a escola primeiro</option>';
+                classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
 
                 setTimeout(() => {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
@@ -432,15 +454,19 @@
                 const response = await fetch('/api/sites');
                 if (!response.ok) throw new Error('Erro ao carregar sites');
 
-                const sites = await response.json();
-                gamesContainer.innerHTML = '';
+                allSites = await response.json();
+                filteredSites = [...allSites];
+                currentPage = 1;
 
-                if (sites.length === 0) {
+                if (allSites.length === 0) {
                     emptyState.classList.remove('d-none');
                     noResultsState.classList.add('d-none');
+                    paginationContainer.innerHTML = '';
                 } else {
                     emptyState.classList.add('d-none');
-                    sites.forEach(appendSite);
+                    displaySites(currentPage);
+                    renderPagination();
+                    // Aplica filtros após carregar (caso já tenha algo escrito na busca/filtros)
                     applyFilters();
                 }
             } catch (error) {
@@ -448,12 +474,10 @@
             }
         }
 
-        // ---- RENDERIZAR CARD DE SITE ----
-        function appendSite(site) {
+        // ---- GERAR HTML DO CARD DE SITE ----
+        function getSiteCardHtml(site) {
             const uniqueId = site.docId || site.id;
-            if (document.getElementById(`site-${uniqueId}`)) return;
-
-            const card = `
+            return `
             <div class="col" id="site-${uniqueId}">
                 <div class="game-card-container position-relative">
                     <div class="game-card"
@@ -498,17 +522,112 @@
                 </div>
             </div>
             `;
+        }
 
-            gamesContainer.innerHTML += card;
+        // ---- EXIBIR SITES NA TELA ----
+        function displaySites(page) {
+            gamesContainer.innerHTML = '';
+            
+            if (filteredSites.length === 0) {
+                if (allSites.length > 0) {
+                    emptyState.classList.add('d-none');
+                    noResultsState.classList.remove('d-none');
+                } else {
+                    emptyState.classList.remove('d-none');
+                    noResultsState.classList.add('d-none');
+                }
+                paginationContainer.innerHTML = '';
+                return;
+            }
+
+            emptyState.classList.add('d-none');
+            noResultsState.classList.add('d-none');
+
+            const start = (page - 1) * itemsPerPage;
+            const end = Math.min(start + itemsPerPage, filteredSites.length);
+            
+            const paginatedItems = filteredSites.slice(start, end);
+            const html = paginatedItems.map(getSiteCardHtml).join('');
+            gamesContainer.innerHTML = html;
+        }
+
+        // ---- RENDERIZAR PAGINAÇÃO ----
+        function renderPagination() {
+            paginationContainer.innerHTML = '';
+            
+            const totalPages = Math.ceil(filteredSites.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            // Botão Anterior
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'pagination-btn';
+            prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displaySites(currentPage);
+                    renderPagination();
+                    document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+            paginationContainer.appendChild(prevBtn);
+
+            // Numeração inteligente
+            const range = 1;
+            let showEllipsisBefore = false;
+            let showEllipsisAfter = false;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - range && i <= currentPage + range)) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                    pageBtn.textContent = i;
+                    pageBtn.addEventListener('click', () => {
+                        currentPage = i;
+                        displaySites(currentPage);
+                        renderPagination();
+                        document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' });
+                    });
+                    paginationContainer.appendChild(pageBtn);
+                } else if (i < currentPage - range && !showEllipsisBefore) {
+                    showEllipsisBefore = true;
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'pagination-ellipsis';
+                    ellipsis.textContent = '...';
+                    paginationContainer.appendChild(ellipsis);
+                } else if (i > currentPage + range && !showEllipsisAfter) {
+                    showEllipsisAfter = true;
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'pagination-ellipsis';
+                    ellipsis.textContent = '...';
+                    paginationContainer.appendChild(ellipsis);
+                }
+            }
+
+            // Botão Próximo
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'pagination-btn';
+            nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displaySites(currentPage);
+                    renderPagination();
+                    document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+            paginationContainer.appendChild(nextBtn);
         }
 
         // ---- ABRIR SITE NO MODAL ----
         gamesContainer.addEventListener('click', (e) => {
             const playBtn = e.target.closest('[class*="btn-play"]');
             if (playBtn) {
-                const card   = playBtn.closest('[data-site-id]');
-                const url    = card.dataset.siteUrl;
-                const title  = card.dataset.siteTitle;
+                const card = playBtn.closest('[data-site-id]');
+                const url = card.dataset.siteUrl;
+                const title = card.dataset.siteTitle;
                 const siteId = card.dataset.siteId;
 
                 // Incrementa contador de visualizações (fire-and-forget)
@@ -521,7 +640,7 @@
                             badge.innerHTML = `<i class="bi bi-eye"></i> ${cur} ${cur === 1 ? 'visualização' : 'visualizações'}`;
                         }
                     })
-                    .catch(() => {});
+                    .catch(() => { });
 
                 openSite(url, title);
             }
@@ -573,43 +692,27 @@
             const schoolValue = filterSchool.value;
             const yearValue = filterYear.value;
 
-            const cards = document.querySelectorAll('#gamesContainer .col');
-            let visibleCount = 0;
+            filteredSites = allSites.filter(site => {
+                const author = (site.author || '').toLowerCase();
+                const title = (site.title || '').toLowerCase();
+                const city = site.city || '';
+                const school = site.school || '';
+                const year = site.studentClass || '';
 
-            cards.forEach(card => {
-                const siteCard = card.querySelector('.game-card');
-                const author = (siteCard.dataset.author || '').toLowerCase();
-                const title = (siteCard.dataset.siteTitle || '').toLowerCase();
-                const city = siteCard.dataset.city || '';
-                const school = siteCard.dataset.school || '';
-                const year = siteCard.dataset.year || '';
-
+                // Filtro de pesquisa (Aluno ou Título)
                 let matchSearch = !searchTerm || author.includes(searchTerm) || title.includes(searchTerm);
+                
+                // Filtros exatos
                 let matchCity = !cityValue || city === cityValue;
                 let matchSchool = !schoolValue || school === schoolValue;
                 let matchYear = !yearValue || year === yearValue;
 
-                if (matchSearch && matchCity && matchSchool && matchYear) {
-                    card.style.display = '';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
+                return matchSearch && matchCity && matchSchool && matchYear;
             });
 
-            if (visibleCount === 0) {
-                const hasCards = document.querySelectorAll('#gamesContainer .col').length > 0;
-                if (hasCards) {
-                    emptyState.classList.add('d-none');
-                    noResultsState.classList.remove('d-none');
-                } else {
-                    emptyState.classList.remove('d-none');
-                    noResultsState.classList.add('d-none');
-                }
-            } else {
-                emptyState.classList.add('d-none');
-                noResultsState.classList.add('d-none');
-            }
+            currentPage = 1;
+            displaySites(currentPage);
+            renderPagination();
         }
 
         // ---- INICIALIZAR ----

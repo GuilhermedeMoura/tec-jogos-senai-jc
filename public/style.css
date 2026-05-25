@@ -319,3 +319,64 @@
      top: 0;
      left: 0;
  }
+
+ /* ==========================================
+    SISTEMA DE PAGINAÇÃO PREMIUM
+    ========================================== */
+ .pagination-container {
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     gap: 0.5rem;
+     margin-top: 3rem;
+     margin-bottom: 2rem;
+     user-select: none;
+     flex-wrap: wrap;
+ }
+
+ .pagination-btn {
+     background: rgba(255, 255, 255, 0.05);
+     border: 1px solid rgba(255, 255, 255, 0.08);
+     color: var(--text-main);
+     padding: 8px 16px;
+     border-radius: 12px;
+     font-size: 0.9rem;
+     font-weight: 600;
+     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+     display: inline-flex;
+     align-items: center;
+     justify-content: center;
+     cursor: pointer;
+     min-width: 42px;
+     height: 42px;
+ }
+
+ .pagination-btn:hover:not(:disabled) {
+     background: var(--accent-gradient);
+     border-color: transparent;
+     color: #ffffff;
+     transform: translateY(-2px);
+     box-shadow: 0 4px 15px rgba(242, 84, 36, 0.35);
+ }
+
+ .pagination-btn.active {
+     background: var(--accent-gradient);
+     border-color: transparent;
+     color: #ffffff;
+     box-shadow: 0 4px 15px rgba(242, 84, 36, 0.45);
+ }
+
+ .pagination-btn:disabled {
+     opacity: 0.25;
+     cursor: not-allowed;
+ }
+
+ .pagination-ellipsis {
+     color: var(--text-muted);
+     font-weight: 600;
+     width: 42px;
+     height: 42px;
+     display: inline-flex;
+     align-items: center;
+     justify-content: center;
+ }
