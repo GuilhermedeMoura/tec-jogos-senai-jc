@@ -150,7 +150,13 @@ app.use('/games', (req, res, next) => {
     next();
 });
 
-app.use(express.static('public'));
+app.use((req, res, next) => {
+    // Evita que a pasta 'public' sirva os arquivos de /games e /sites diretamente sem passar pelos cabeçalhos corretos e cache
+    if (req.url.startsWith('/games/') || req.url.startsWith('/sites/')) {
+        return next();
+    }
+    express.static('public')(req, res, next);
+});
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
@@ -235,6 +241,135 @@ function reorganizeGameFiles(gamePath, indexHtmlPath) {
     }
 
     moveContents(indexHtmlPath, gamePath);
+}
+
+// Resolve caminhos ignorando diferenças de maiúsculas/minúsculas de forma recursiva
+function resolveCaseInsensitivePath(basePath, relativePath) {
+    const segments = relativePath.split(/[/\\]/).filter(Boolean);
+    let currentPath = basePath;
+    
+    for (const segment of segments) {
+        if (!fs.existsSync(currentPath)) return null;
+        
+        try {
+            const stat = fs.statSync(currentPath);
+            if (!stat.isDirectory()) return null;
+            
+            const files = fs.readdirSync(currentPath);
+            const match = files.find(f => f.toLowerCase() === segment.toLowerCase());
+            if (!match) return null;
+            
+            currentPath = path.join(currentPath, match);
+        } catch (err) {
+            return null;
+        }
+    }
+    
+    return currentPath;
+}
+
+// Converte caminhos absolutos (ex: /style.css) para relativos em arquivos HTML, CSS e JS extraídos,
+// ignorando as rotas de sistema conhecidas como /games, /sites, /api, /health, /professores.html, /favicon.ico.
+function convertAbsolutePathsToRelative(dirPath) {
+    const globalPrefixes = ['/games', '/sites', '/api', '/health', '/professores.html', '/favicon.ico'];
+    
+    function walk(currentDir) {
+        if (!fs.existsSync(currentDir)) return;
+        const items = fs.readdirSync(currentDir);
+        for (const item of items) {
+            const fullPath = path.join(currentDir, item);
+            try {
+                const stat = fs.statSync(fullPath);
+                if (stat.isDirectory()) {
+                    walk(fullPath);
+                } else {
+                    const ext = path.extname(item).toLowerCase();
+                    if (['.html', '.css', '.js'].includes(ext)) {
+                        let content = fs.readFileSync(fullPath, 'utf8');
+                        let modified = false;
+                        
+                        // Regex para caminhos em aspas (HTML, JS, CSS)
+                        content = content.replace(/(["'`])(\/[^"'`\s]+)\1/g, (match, quote, pathVal) => {
+                            if (pathVal.startsWith('//')) return match; // ignora protocolo relativo
+                            
+                            const shouldPreserve = globalPrefixes.some(prefix => 
+                                pathVal === prefix || pathVal.startsWith(prefix + '/')
+                            );
+                            
+                            if (shouldPreserve) return match;
+                            
+                            const relativePath = pathVal.substring(1);
+                            modified = true;
+                            return `${quote}${relativePath}${quote}`;
+                        });
+                        
+                        // Regex para url('/...') no CSS
+                        content = content.replace(/url\(\s*["']?(\/[^)]+)["']?\s*\)/g, (match, pathVal) => {
+                            if (pathVal.startsWith('//')) return match;
+                            
+                            const shouldPreserve = globalPrefixes.some(prefix => 
+                                pathVal === prefix || pathVal.startsWith(prefix + '/')
+                            );
+                            
+                            if (shouldPreserve) return match;
+                            
+                            const relativePath = pathVal.substring(1);
+                            modified = true;
+                            
+                            if (pathVal.startsWith("'") || pathVal.startsWith('"')) {
+                                const quote = pathVal[0];
+                                return `url(${quote}${relativePath.substring(1)}${quote})`;
+                            }
+                            return `url(${relativePath})`;
+                        });
+                        
+                        if (modified) {
+                            fs.writeFileSync(fullPath, content, 'utf8');
+                            console.log(`[Path Fix] Converted absolute paths in: ${fullPath}`);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn(`[Path Fix Warning] Failed to process ${fullPath}:`, err.message);
+            }
+        }
+    }
+    
+    walk(dirPath);
+}
+
+// Middleware de arquivos estáticos com suporte a case-insensitive
+function caseInsensitiveStatic(baseDir) {
+    return (req, res, next) => {
+        let decodedUrl;
+        try {
+            decodedUrl = decodeURIComponent(req.url);
+        } catch (e) {
+            decodedUrl = req.url;
+        }
+        
+        const cleanPath = decodedUrl.split('?')[0];
+        const exactPath = path.join(baseDir, cleanPath);
+        
+        if (fs.existsSync(exactPath)) {
+            return next();
+        }
+        
+        const resolvedPath = resolveCaseInsensitivePath(baseDir, cleanPath);
+        if (resolvedPath) {
+            const relativeResolved = path.relative(baseDir, resolvedPath);
+            const normalizedRelative = '/' + relativeResolved.replace(/\\/g, '/');
+            
+            console.log(`[Case Fix] Resolved case mismatch: ${req.url} -> ${normalizedRelative}`);
+            
+            const queryIndex = req.url.indexOf('?');
+            const queryString = queryIndex !== -1 ? req.url.substring(queryIndex) : '';
+            
+            req.url = normalizedRelative + queryString;
+        }
+        
+        next();
+    };
 }
 
 // Converte um título em slug seguro para uso em IDs/caminhos de arquivo
@@ -577,6 +712,9 @@ app.use('/games/:gameId', async (req, res, next) => {
                     console.log(`[Cache] Rebuilt Python runner for game ${gameId}: ${pythonInfo.fileName}`);
                 }
             }
+            // Corrigir caminhos absolutos no cache local de jogos
+            convertAbsolutePathsToRelative(localGamePath);
+
             console.log(`[Cache] Game ${gameId} cached locally for future requests`);
         } catch (cacheErr) {
             console.warn(`[Cache] Failed to cache game ${gameId} locally (non-critical):`, cacheErr.message);
@@ -596,6 +734,7 @@ app.use('/games/:gameId', async (req, res, next) => {
 });
 
 // Serve the games statically after middleware with proper headers for Game Engines (Unity/Godot)
+app.use('/games', caseInsensitiveStatic(GAMES_FOLDER));
 app.use('/games', express.static(GAMES_FOLDER, {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.br')) {
@@ -649,6 +788,9 @@ app.use('/sites/:siteId', async (req, res, next) => {
                     fs.renameSync(originalHtml, targetHtml);
                 }
             }
+            // Corrigir caminhos absolutos no cache local de sites
+            convertAbsolutePathsToRelative(localSitePath);
+
             console.log(`[Cache] Site ${siteId} cached locally`);
         } catch (cacheErr) {
             console.warn(`[Cache] Failed to cache site ${siteId} (non-critical):`, cacheErr.message);
@@ -662,6 +804,7 @@ app.use('/sites/:siteId', async (req, res, next) => {
 });
 
 // Serve sites statically
+app.use('/sites', caseInsensitiveStatic(SITES_FOLDER));
 app.use('/sites', express.static(SITES_FOLDER));
 
 app.post('/upload', rateLimiter(5, 60 * 60 * 1000), uploadGame.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
@@ -834,6 +977,9 @@ app.post('/upload', rateLimiter(5, 60 * 60 * 1000), uploadGame.fields([{ name: '
                 fs.renameSync(originalHtml, targetHtml);
             }
         }
+
+        // Corrigir caminhos absolutos nos arquivos carregados
+        convertAbsolutePathsToRelative(localGamePath);
 
         if (gameType === 'html' && file.originalname.toLowerCase().endsWith('.zip') && indexInfo && indexInfo.dirPath !== localGamePath) {
             try {
@@ -1081,6 +1227,9 @@ app.post('/upload-site', rateLimiter(5, 60 * 60 * 1000), uploadSite.fields([{ na
             const targetHtml = path.join(localSitePath, 'index.html');
             if (fs.existsSync(originalHtml)) fs.renameSync(originalHtml, targetHtml);
         }
+
+        // Corrigir caminhos absolutos nos arquivos de sites carregados
+        convertAbsolutePathsToRelative(localSitePath);
 
         let coverUrl = null;
         if (coverFile) {
