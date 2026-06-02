@@ -197,9 +197,9 @@
      gap: 0.35rem;
      font-size: 0.7rem;
      font-weight: 600;
-     color: rgba(255,255,255,0.45);
-     background: rgba(255,255,255,0.05);
-     border: 1px solid rgba(255,255,255,0.08);
+     color: rgba(255, 255, 255, 0.45);
+     background: rgba(255, 255, 255, 0.05);
+     border: 1px solid rgba(255, 255, 255, 0.08);
      border-radius: 50px;
      padding: 2px 10px;
      transition: color 0.2s, background 0.2s;
@@ -213,9 +213,9 @@
  }
 
  .game-card:hover .plays-badge {
-     color: rgba(255,255,255,0.75);
-     background: rgba(124,77,255,0.12);
-     border-color: rgba(124,77,255,0.25);
+     color: rgba(255, 255, 255, 0.75);
+     background: rgba(124, 77, 255, 0.12);
+     border-color: rgba(124, 77, 255, 0.25);
  }
 
  .author-info {
@@ -289,9 +289,9 @@
 
  /* Estilos para select na página de professores */
  select.admin-field-value {
-     background: rgba(255,255,255,.06);
+     background: rgba(255, 255, 255, .06);
      color: #e0e0e0;
-     border: 1px solid rgba(255,255,255,.08);
+     border: 1px solid rgba(255, 255, 255, .08);
      padding: .3rem .55rem;
      border-radius: 7px;
      min-height: 32px;
@@ -402,10 +402,12 @@
  .carousel-glow-shape {
      width: 320px;
      height: 320px;
+     width: 380px;
+     height: 380px;
      background: var(--accent-gradient);
      border-radius: 50%;
-     filter: blur(80px);
-     opacity: 0.15;
+     filter: blur(90px);
+     opacity: 0.18;
      position: absolute;
      top: 50%;
      left: 50%;
@@ -415,8 +417,17 @@
  }
 
  @keyframes pulseGlow {
-     0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.15; }
-     50% { transform: translate(-50%, -50%) scale(1.12); opacity: 0.22; }
+
+     0%,
+     100% {
+         transform: translate(-50%, -50%) scale(1);
+         opacity: 0.18;
+     }
+
+     50% {
+         transform: translate(-50%, -50%) scale(1.15);
+         opacity: 0.25;
+     }
  }
 
  .premium-carousel-card {
@@ -425,20 +436,23 @@
      -webkit-backdrop-filter: blur(15px);
      border: 1px solid rgba(255, 255, 255, 0.1);
      border-radius: var(--border-radius);
-     padding: 2.2rem;
-     min-height: 380px;
+     padding: 2.5rem;
+     min-height: 420px;
      display: flex;
      flex-direction: column;
      justify-content: space-between;
-     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
      position: relative;
      overflow: hidden;
-     transition: transform 0.3s ease, border-color 0.3s ease;
+     background-size: cover;
+     background-position: center;
+     transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
  }
 
  .premium-carousel-card:hover {
-     border-color: rgba(242, 84, 36, 0.4);
-     transform: translateY(-5px);
+     border-color: rgba(242, 84, 36, 0.5);
+     transform: translateY(-8px);
+     box-shadow: 0 40px 80px rgba(242, 84, 36, 0.18);
  }
 
  .premium-carousel-card::before {
@@ -456,8 +470,8 @@
      backdrop-filter: blur(15px);
      border: 1px solid rgba(255, 255, 255, 0.1);
      border-radius: var(--border-radius);
-     padding: 2.2rem;
-     min-height: 380px;
+     padding: 2.5rem;
+     min-height: 420px;
      display: flex;
      flex-direction: column;
      align-items: center;
@@ -597,7 +611,7 @@
  .star-rating .bi-star,
  .star-rating .bi-star-fill {
      font-size: 1.05rem;
-     color: rgba(255, 255, 255, 0.2);
+     color: #f8c037;
      cursor: pointer;
      transition: color 0.15s ease, transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
  }
@@ -631,4 +645,23 @@
      color: #f8c037;
      font-weight: 700;
      font-size: 0.78rem;
+ }
+
+ .btn-submit-rating {
+     background: var(--accent-gradient);
+     color: #fff;
+     border: none;
+     border-radius: 50px;
+     padding: 3px 12px;
+     font-size: 0.68rem;
+     font-weight: 700;
+     transition: all 0.2s ease;
+     box-shadow: 0 2px 5px rgba(242, 84, 36, 0.25);
+     margin-left: 6px;
+ }
+
+ .btn-submit-rating:hover {
+     background: #fff;
+     color: #f25424;
+     transform: scale(1.05);
  }

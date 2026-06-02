@@ -231,6 +231,7 @@ function populateTopWeeklyCarousel(games) {
     topGames.forEach((game, index) => {
         const uniqueId = game.docId || game.id;
         const avgRating = game.averageRating || 0;
+        const coverImg = game.coverUrl || `https://via.placeholder.com/600x400?text=${encodeURIComponent(game.title)}`;
         
         // Indicator
         const indicator = document.createElement('button');
@@ -249,7 +250,7 @@ function populateTopWeeklyCarousel(games) {
         item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
         
         item.innerHTML = `
-            <div class="premium-carousel-card" style="cursor: pointer;" onclick="playGame('${game.url}', '${game.title.replace(/'/g, "\\'")}')">
+            <div class="premium-carousel-card" style="background-image: linear-gradient(135deg, rgba(19, 20, 26, 0.95) 45%, rgba(19, 20, 26, 0.35) 100%), url('${coverImg}'); cursor: pointer;" onclick="playGame('${game.url}', '${game.title.replace(/'/g, "\\'")}')">
                 <div class="top-rank-badge">
                     <i class="bi bi-trophy-fill me-1"></i> TOP #${index + 1}
                 </div>
@@ -289,6 +290,17 @@ function populateTopWeeklyCarousel(games) {
         `;
         carouselInner.appendChild(item);
     });
+
+    // Reiniciar e forçar o auto-slide do Bootstrap Carousel a cada 4 segundos
+    const carouselEl = document.getElementById('topWeeklyCarousel');
+    if (carouselEl) {
+        const carouselInstance = bootstrap.Carousel.getOrCreateInstance(carouselEl, {
+            interval: 4000,
+            ride: 'carousel'
+        });
+        carouselInstance.to(0);
+        carouselInstance.cycle();
+    }
 }
 
 function getGameCardHtml(game) {
@@ -342,9 +354,10 @@ function getGameCardHtml(game) {
                     
                     <!-- Sistema de Avaliação -->
                     <div class="card-rating-container" onclick="event.stopPropagation();">
-                        <div class="star-rating ${isRated ? 'rated' : ''}" data-project-id="${uniqueId}">
+                        <div class="star-rating ${isRated ? 'rated' : ''}" data-project-id="${uniqueId}" data-current-avg="${avgRating}">
                             ${starsHtml}
                         </div>
+                        ${!isRated ? `<button class="btn btn-sm btn-submit-rating d-none" data-project-id="${uniqueId}">Enviar</button>` : ''}
                         <span class="rating-text">
                             <span class="rating-value">${avgRating > 0 ? avgRating.toFixed(1) : '-.-'}</span> 
                             (${ratingCount} ${ratingCount === 1 ? 'avaliação' : 'avaliações'})
@@ -603,40 +616,82 @@ gamesContainer.addEventListener('mouseover', (e) => {
 gamesContainer.addEventListener('mouseout', (e) => {
     const starContainer = e.target.closest('.star-rating');
     if (starContainer && !starContainer.classList.contains('rated')) {
-        const projectId = starContainer.dataset.projectId;
-        const project = allGames.find(p => (p.docId || p.id) === projectId);
+        const stars = starContainer.querySelectorAll('i');
         
-        if (project) {
-            const avg = project.averageRating || 0;
-            const stars = starContainer.querySelectorAll('i');
-            stars.forEach((s, idx) => {
-                if (idx < Math.round(avg)) {
-                    s.className = 'bi bi-star-fill active-star';
-                } else {
-                    s.className = 'bi bi-star';
-                }
-            });
-        }
+        // Se já tiver uma nota pré-selecionada pelo clique, restaura nela. Caso contrário, restaura na média atual.
+        const selectedRating = parseInt(starContainer.dataset.selectedRating || '0');
+        const avg = parseFloat(starContainer.dataset.currentAvg || '0');
+        const targetVal = selectedRating > 0 ? selectedRating : Math.round(avg);
+
+        stars.forEach((s, idx) => {
+            if (idx < targetVal) {
+                s.className = 'bi bi-star-fill active-star';
+            } else {
+                s.className = 'bi bi-star';
+            }
+        });
     }
 });
 
-// Clique na estrela para submeter avaliação
-gamesContainer.addEventListener('click', async (e) => {
+// Clique na estrela para SELECIONAR (mas não enviar ainda)
+gamesContainer.addEventListener('click', (e) => {
     const star = e.target.closest('.star-rating i');
     if (star) {
         e.stopPropagation(); // Evita abrir o modal do jogo
         const starContainer = star.closest('.star-rating');
         if (starContainer.classList.contains('rated')) return;
 
-        const projectId = starContainer.dataset.projectId;
         const rating = parseInt(star.dataset.rating);
         if (isNaN(rating) || rating < 1 || rating > 5) return;
+
+        // Salva a nota pré-selecionada no dataset do contêiner
+        starContainer.dataset.selectedRating = rating;
+
+        // Atualiza a exibição visual das estrelas
+        const stars = starContainer.querySelectorAll('i');
+        stars.forEach((s, idx) => {
+            if (idx < rating) {
+                s.className = 'bi bi-star-fill active-star';
+            } else {
+                s.className = 'bi bi-star';
+            }
+        });
+
+        // Torna visível o botão de "Enviar" deste card específico
+        const ratingContainer = starContainer.closest('.card-rating-container');
+        if (ratingContainer) {
+            const submitBtn = ratingContainer.querySelector('.btn-submit-rating');
+            if (submitBtn) submitBtn.classList.remove('d-none');
+        }
+    }
+});
+
+// Clique no botão "Enviar" para submeter avaliação ao servidor
+gamesContainer.addEventListener('click', async (e) => {
+    const submitBtn = e.target.closest('.btn-submit-rating');
+    if (submitBtn) {
+        e.stopPropagation(); // Evita abrir o modal
+        const projectId = submitBtn.dataset.projectId;
+        const ratingContainer = submitBtn.closest('.card-rating-container');
+        if (!ratingContainer) return;
+
+        const starContainer = ratingContainer.querySelector('.star-rating');
+        if (!starContainer || starContainer.classList.contains('rated')) return;
+
+        const selectedRating = parseInt(starContainer.dataset.selectedRating || '0');
+        if (selectedRating < 1 || selectedRating > 5) {
+            alert('Por favor, selecione uma nota de 1 a 5 estrelas primeiro.');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Enviando...';
 
         try {
             const response = await fetch(`/api/games/${projectId}/rate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rating })
+                body: JSON.stringify({ rating: selectedRating })
             });
 
             if (!response.ok) {
@@ -649,22 +704,26 @@ gamesContainer.addEventListener('click', async (e) => {
             // Persistir no localStorage local
             localStorage.setItem(`rated-game-${projectId}`, 'true');
             
-            // Marcar como avaliado
+            // Marcar como avaliado e travar estrelas
             starContainer.classList.add('rated');
+            starContainer.dataset.currentAvg = result.averageRating;
+            
+            // Ocultar o botão Enviar
+            submitBtn.classList.add('d-none');
             
             // Fixar a avaliação visualmente
             const stars = starContainer.querySelectorAll('i');
             stars.forEach((s, idx) => {
                 s.style.cursor = 'default';
-                if (idx < rating) {
+                if (idx < selectedRating) {
                     s.className = 'bi bi-star-fill active-star';
                 } else {
                     s.className = 'bi bi-star';
                 }
             });
 
-            // Atualizar valores de texto
-            const ratingText = starContainer.nextElementSibling;
+            // Atualizar valores de texto do card
+            const ratingText = ratingContainer.querySelector('.rating-text');
             if (ratingText) {
                 const count = result.ratingCount;
                 ratingText.innerHTML = `
@@ -673,7 +732,7 @@ gamesContainer.addEventListener('click', async (e) => {
                 `;
             }
 
-            console.log(`[Rating Success] Registered ${rating} stars for game ${projectId}`);
+            console.log(`[Rating Success] Registered ${selectedRating} stars for game ${projectId}`);
             
             // Atualiza a lista interna para sincronizar o carrossel no topo em paralelo
             const gameObj = allGames.find(p => (p.docId || p.id) === projectId);
@@ -686,6 +745,8 @@ gamesContainer.addEventListener('click', async (e) => {
         } catch (err) {
             console.error('Erro ao avaliar:', err.message);
             alert('Não foi possível registrar sua avaliação: ' + err.message);
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Enviar';
         }
     }
 });
