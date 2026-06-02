@@ -1344,6 +1344,47 @@ app.post('/api/sites/:siteId/view', rateLimiter(30, 60 * 1000), async (req, res)
     }
 });
 
+// Rate a site (1-5 stars)
+app.post('/api/sites/:siteId/rate', rateLimiter(20, 60 * 1000), async (req, res) => {
+    try {
+        const siteId = req.params.siteId;
+        const rating = parseInt(req.body.rating);
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'Avaliação inválida. Deve ser entre 1 e 5 estrelas.' });
+        }
+        
+        const q = query(collection(db, 'sites'));
+        const snap = await getDocs(q);
+        let targetDocId = null;
+        let siteData = null;
+        snap.forEach(d => {
+            if (d.id === siteId || String(d.data().id) === String(siteId)) {
+                targetDocId = d.id;
+                siteData = d.data();
+            }
+        });
+        if (!targetDocId) return res.status(404).json({ error: 'Site não encontrado.' });
+        
+        const currentSum = parseInt(siteData.ratingSum || 0);
+        const currentCount = parseInt(siteData.ratingCount || 0);
+        
+        const newSum = currentSum + rating;
+        const newCount = currentCount + 1;
+        const averageRating = parseFloat((newSum / newCount).toFixed(1));
+        
+        await updateDoc(doc(db, 'sites', targetDocId), {
+            ratingSum: newSum,
+            ratingCount: newCount,
+            averageRating: averageRating
+        });
+        
+        console.log(`[Rating] Site ${siteId} rated with ${rating}. New average: ${averageRating} (${newCount} ratings)`);
+        res.json({ ok: true, averageRating, ratingCount: newCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Edita metadados de um site (painel de professores)
 app.patch('/api/sites/:siteId', rateLimiter(10, 60 * 1000), async (req, res) => {
     try {
@@ -1434,6 +1475,47 @@ app.post('/api/games/:gameId/play', rateLimiter(30, 60 * 1000), async (req, res)
         if (!targetDocId) return res.status(404).json({ error: 'Jogo não encontrado.' });
         await updateDoc(doc(db, 'games', targetDocId), { plays: increment(1) });
         res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Rate a game (1-5 stars)
+app.post('/api/games/:gameId/rate', rateLimiter(20, 60 * 1000), async (req, res) => {
+    try {
+        const gameId = req.params.gameId;
+        const rating = parseInt(req.body.rating);
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'Avaliação inválida. Deve ser entre 1 e 5 estrelas.' });
+        }
+        
+        const q = query(collection(db, 'games'));
+        const snap = await getDocs(q);
+        let targetDocId = null;
+        let gameData = null;
+        snap.forEach(d => {
+            if (d.id === gameId || String(d.data().id) === String(gameId)) {
+                targetDocId = d.id;
+                gameData = d.data();
+            }
+        });
+        if (!targetDocId) return res.status(404).json({ error: 'Jogo não encontrado.' });
+        
+        const currentSum = parseInt(gameData.ratingSum || 0);
+        const currentCount = parseInt(gameData.ratingCount || 0);
+        
+        const newSum = currentSum + rating;
+        const newCount = currentCount + 1;
+        const averageRating = parseFloat((newSum / newCount).toFixed(1));
+        
+        await updateDoc(doc(db, 'games', targetDocId), {
+            ratingSum: newSum,
+            ratingCount: newCount,
+            averageRating: averageRating
+        });
+        
+        console.log(`[Rating] Game ${gameId} rated with ${rating}. New average: ${averageRating} (${newCount} ratings)`);
+        res.json({ ok: true, averageRating, ratingCount: newCount });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

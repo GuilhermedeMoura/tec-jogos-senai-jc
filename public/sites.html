@@ -46,8 +46,22 @@
                         Ver Sites <i class="bi bi-arrow-right ms-2"></i>
                     </a>
                 </div>
-                <div class="col-lg-6 d-none d-lg-block text-center">
-                    <div class="hero-shape"></div>
+                <div class="col-lg-6 d-none d-lg-block">
+                    <div class="premium-carousel-wrapper position-relative">
+                        <!-- Glowing blob background behind the carousel -->
+                        <div class="carousel-glow-shape"></div>
+                        <div id="topWeeklyCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+                            <div class="carousel-indicators" id="carouselIndicators"></div>
+                            <div class="carousel-inner" id="carouselInner">
+                                <div class="carousel-item active">
+                                    <div class="carousel-loading-card">
+                                        <div class="spinner-border text-light mb-3" role="status"></div>
+                                        <p class="m-0 text-white-50">Carregando os sites mais vistos da semana...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -458,6 +472,9 @@
                 filteredSites = [...allSites];
                 currentPage = 1;
 
+                // Popula o carrossel dos top 5 mais vistos
+                populateTopWeeklyCarousel(allSites);
+
                 if (allSites.length === 0) {
                     emptyState.classList.remove('d-none');
                     noResultsState.classList.add('d-none');
@@ -474,9 +491,107 @@
             }
         }
 
+        function populateTopWeeklyCarousel(sites) {
+            const carouselInner = document.getElementById('carouselInner');
+            const carouselIndicators = document.getElementById('carouselIndicators');
+            
+            if (!carouselInner || !carouselIndicators) return;
+            
+            carouselInner.innerHTML = '';
+            carouselIndicators.innerHTML = '';
+            
+            const topSites = [...sites]
+                .sort((a, b) => (b.views || 0) - (a.views || 0))
+                .slice(0, 5);
+                
+            if (topSites.length === 0) {
+                carouselInner.innerHTML = `
+                    <div class="carousel-item active">
+                        <div class="carousel-loading-card">
+                            <i class="bi bi-code-slash display-4 text-white-50 mb-3"></i>
+                            <p class="m-0 text-white-50">Nenhum site enviado ainda.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            topSites.forEach((site, index) => {
+                const uniqueId = site.docId || site.id;
+                const avgRating = site.averageRating || 0;
+                
+                // Indicator
+                const indicator = document.createElement('button');
+                indicator.type = 'button';
+                indicator.dataset.bsTarget = '#topWeeklyCarousel';
+                indicator.dataset.bsSlideTo = index;
+                if (index === 0) {
+                    indicator.className = 'active';
+                    indicator.ariaCurrent = 'true';
+                }
+                indicator.ariaLabel = `Slide ${index + 1}`;
+                carouselIndicators.appendChild(indicator);
+                
+                // Slide item
+                const item = document.createElement('div');
+                item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
+                
+                item.innerHTML = `
+                    <div class="premium-carousel-card" style="cursor: pointer;" onclick="openSite('${site.url}', '${site.title.replace(/'/g, "\\'")}')">
+                        <div class="top-rank-badge" style="background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%); box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);">
+                            <i class="bi bi-trophy-fill me-1"></i> TOP #${index + 1}
+                        </div>
+                        <div class="carousel-project-info">
+                            <h3 class="carousel-project-title text-gradient" style="background: linear-gradient(135deg, #0d6efd, #6610f2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${site.title}</h3>
+                            <ul class="carousel-meta-list">
+                                <li class="carousel-meta-item">
+                                    <i class="bi bi-person-circle" style="color:#0d6efd;"></i>
+                                    <div><strong>Desenvolvedor:</strong> ${site.author}</div>
+                                </li>
+                                <li class="carousel-meta-item">
+                                    <i class="bi bi-code-slash" style="color:#0d6efd;"></i>
+                                    <div><strong>Turma:</strong> ${site.studentClass || 'N/A'}</div>
+                                </li>
+                                <li class="carousel-meta-item">
+                                    <i class="bi bi-mortarboard-fill" style="color:#0d6efd;"></i>
+                                    <div><strong>Professor:</strong> ${site.teacher || 'N/A'}</div>
+                                </li>
+                                <li class="carousel-meta-item">
+                                    <i class="bi bi-building" style="color:#0d6efd;"></i>
+                                    <div><strong>Escola:</strong> ${site.school || 'N/A'}</div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="carousel-action-row">
+                            <button class="btn btn-primary carousel-play-btn" style="background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%); border:none; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);">
+                                <i class="bi bi-eye"></i> Visualizar
+                            </button>
+                            <div class="carousel-stats-badge">
+                                <i class="bi bi-star-fill"></i>
+                                <span>${avgRating > 0 ? avgRating.toFixed(1) : 'S/A'}</span>
+                                <span class="text-white-50 mx-1">|</span>
+                                <span>${site.views || 0} visualizações</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                carouselInner.appendChild(item);
+            });
+        }
+
         // ---- GERAR HTML DO CARD DE SITE ----
         function getSiteCardHtml(site) {
             const uniqueId = site.docId || site.id;
+            const avgRating = site.averageRating || 0;
+            const ratingCount = site.ratingCount || 0;
+            const isRated = localStorage.getItem('rated-site-' + uniqueId) !== null;
+            
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                const starClass = i <= Math.round(avgRating) ? 'bi-star-fill active-star' : 'bi-star';
+                starsHtml += `<i class="bi ${starClass}" data-rating="${i}"></i>`;
+            }
+
             return `
             <div class="col" id="site-${uniqueId}">
                 <div class="game-card-container position-relative">
@@ -511,6 +626,18 @@
                                 ${site.school ? `<div class="small"><i class="bi bi-building"></i> ${site.school}</div>` : ''}
                                 ${site.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${site.city}</div>` : ''}
                             </div>
+                            
+                            <!-- Sistema de Avaliação -->
+                            <div class="card-rating-container" onclick="event.stopPropagation();">
+                                <div class="star-rating ${isRated ? 'rated' : ''}" data-project-id="${uniqueId}">
+                                    ${starsHtml}
+                                </div>
+                                <span class="rating-text">
+                                    <span class="rating-value">${avgRating > 0 ? avgRating.toFixed(1) : '-.-'}</span> 
+                                    (${ratingCount} ${ratingCount === 1 ? 'avaliação' : 'avaliações'})
+                                </span>
+                            </div>
+
                             <div class="d-flex justify-content-end mt-2">
                                 <span class="plays-badge" id="views-${uniqueId}" data-count="${site.views || 0}" title="Visualizações">
                                     <i class="bi bi-eye"></i>
@@ -714,6 +841,118 @@
             displaySites(currentPage);
             renderPagination();
         }
+
+        // --- DELEGAÇÃO DE EVENTOS PARA AVALIAÇÃO DE ESTRELAS ---
+
+        // Efeito de Hover ao passar o mouse nas estrelas
+        gamesContainer.addEventListener('mouseover', (e) => {
+            const star = e.target.closest('.star-rating i');
+            if (star) {
+                const starContainer = star.closest('.star-rating');
+                if (starContainer.classList.contains('rated')) return;
+
+                const rating = parseInt(star.dataset.rating);
+                const stars = starContainer.querySelectorAll('i');
+                stars.forEach((s, idx) => {
+                    if (idx < rating) {
+                        s.className = 'bi bi-star-fill active-star';
+                    } else {
+                        s.className = 'bi bi-star';
+                    }
+                });
+            }
+        });
+
+        // Restaurar visual quando o mouse sai do contêiner de estrelas
+        gamesContainer.addEventListener('mouseout', (e) => {
+            const starContainer = e.target.closest('.star-rating');
+            if (starContainer && !starContainer.classList.contains('rated')) {
+                const projectId = starContainer.dataset.projectId;
+                const project = allSites.find(p => (p.docId || p.id) === projectId);
+                
+                if (project) {
+                    const avg = project.averageRating || 0;
+                    const stars = starContainer.querySelectorAll('i');
+                    stars.forEach((s, idx) => {
+                        if (idx < Math.round(avg)) {
+                            s.className = 'bi bi-star-fill active-star';
+                        } else {
+                            s.className = 'bi bi-star';
+                        }
+                    });
+                }
+            }
+        });
+
+        // Clique na estrela para submeter avaliação
+        gamesContainer.addEventListener('click', async (e) => {
+            const star = e.target.closest('.star-rating i');
+            if (star) {
+                e.stopPropagation(); // Evita abrir o modal do site
+                const starContainer = star.closest('.star-rating');
+                if (starContainer.classList.contains('rated')) return;
+
+                const projectId = starContainer.dataset.projectId;
+                const rating = parseInt(star.dataset.rating);
+                if (isNaN(rating) || rating < 1 || rating > 5) return;
+
+                try {
+                    const response = await fetch(`/api/sites/${projectId}/rate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rating })
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error || 'Falha ao processar avaliação');
+                    }
+
+                    const result = await response.json();
+                    
+                    // Persistir no localStorage local
+                    localStorage.setItem(`rated-site-${projectId}`, 'true');
+                    
+                    // Marcar como avaliado
+                    starContainer.classList.add('rated');
+                    
+                    // Fixar a avaliação visualmente
+                    const stars = starContainer.querySelectorAll('i');
+                    stars.forEach((s, idx) => {
+                        s.style.cursor = 'default';
+                        if (idx < rating) {
+                            s.className = 'bi bi-star-fill active-star';
+                        } else {
+                            s.className = 'bi bi-star';
+                        }
+                    });
+
+                    // Atualizar valores de texto
+                    const ratingText = starContainer.nextElementSibling;
+                    if (ratingText) {
+                        const count = result.ratingCount;
+                        ratingText.innerHTML = `
+                            <span class="rating-value">${result.averageRating.toFixed(1)}</span> 
+                            (${count} ${count === 1 ? 'avaliação' : 'avaliações'})
+                        `;
+                    }
+
+                    console.log(`[Rating Success] Registered ${rating} stars for site ${projectId}`);
+                    
+                    // Atualiza a lista interna para sincronizar o carrossel no topo em paralelo
+                    const siteObj = allSites.find(p => (p.docId || p.id) === projectId);
+                    if (siteObj) {
+                        siteObj.averageRating = result.averageRating;
+                        siteObj.ratingCount = result.ratingCount;
+                        populateTopWeeklyCarousel(allSites);
+                    }
+
+                } catch (err) {
+                    console.error('Erro ao avaliar:', err.message);
+                    alert('Não foi possível registrar sua avaliação: ' + err.message);
+                }
+            }
+        });
 
         // ---- INICIALIZAR ----
         document.addEventListener('DOMContentLoaded', loadSites);

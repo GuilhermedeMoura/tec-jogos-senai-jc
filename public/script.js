@@ -184,6 +184,9 @@ async function loadGames() {
         filteredGames = [...allGames];
         currentPage = 1;
 
+        // Popula o carrossel dos top 5 mais jogados
+        populateTopWeeklyCarousel(allGames);
+
         if (allGames.length === 0) {
             emptyState.classList.remove('d-none');
             noResultsState.classList.add('d-none');
@@ -200,8 +203,106 @@ async function loadGames() {
     }
 }
 
+function populateTopWeeklyCarousel(games) {
+    const carouselInner = document.getElementById('carouselInner');
+    const carouselIndicators = document.getElementById('carouselIndicators');
+    
+    if (!carouselInner || !carouselIndicators) return;
+    
+    carouselInner.innerHTML = '';
+    carouselIndicators.innerHTML = '';
+    
+    const topGames = [...games]
+        .sort((a, b) => (b.plays || 0) - (a.plays || 0))
+        .slice(0, 5);
+        
+    if (topGames.length === 0) {
+        carouselInner.innerHTML = `
+            <div class="carousel-item active">
+                <div class="carousel-loading-card">
+                    <i class="bi bi-joystick display-4 text-white-50 mb-3"></i>
+                    <p class="m-0 text-white-50">Nenhum jogo enviado ainda.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    topGames.forEach((game, index) => {
+        const uniqueId = game.docId || game.id;
+        const avgRating = game.averageRating || 0;
+        
+        // Indicator
+        const indicator = document.createElement('button');
+        indicator.type = 'button';
+        indicator.dataset.bsTarget = '#topWeeklyCarousel';
+        indicator.dataset.bsSlideTo = index;
+        if (index === 0) {
+            indicator.className = 'active';
+            indicator.ariaCurrent = 'true';
+        }
+        indicator.ariaLabel = `Slide ${index + 1}`;
+        carouselIndicators.appendChild(indicator);
+        
+        // Slide item
+        const item = document.createElement('div');
+        item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
+        
+        item.innerHTML = `
+            <div class="premium-carousel-card" style="cursor: pointer;" onclick="playGame('${game.url}', '${game.title.replace(/'/g, "\\'")}')">
+                <div class="top-rank-badge">
+                    <i class="bi bi-trophy-fill me-1"></i> TOP #${index + 1}
+                </div>
+                <div class="carousel-project-info">
+                    <h3 class="carousel-project-title text-gradient">${game.title}</h3>
+                    <ul class="carousel-meta-list">
+                        <li class="carousel-meta-item">
+                            <i class="bi bi-person-circle"></i>
+                            <div><strong>Desenvolvedor:</strong> ${game.author}</div>
+                        </li>
+                        <li class="carousel-meta-item">
+                            <i class="bi bi-code-slash"></i>
+                            <div><strong>Turma:</strong> ${game.studentClass || 'N/A'}</div>
+                        </li>
+                        <li class="carousel-meta-item">
+                            <i class="bi bi-mortarboard-fill"></i>
+                            <div><strong>Professor:</strong> ${game.teacher || 'N/A'}</div>
+                        </li>
+                        <li class="carousel-meta-item">
+                            <i class="bi bi-building"></i>
+                            <div><strong>Escola:</strong> ${game.school || 'N/A'}</div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="carousel-action-row">
+                    <button class="btn btn-modern-primary carousel-play-btn">
+                        <i class="bi bi-controller"></i> Jogar Agora
+                    </button>
+                    <div class="carousel-stats-badge">
+                        <i class="bi bi-star-fill"></i>
+                        <span>${avgRating > 0 ? avgRating.toFixed(1) : 'S/A'}</span>
+                        <span class="text-white-50 mx-1">|</span>
+                        <span>${game.plays || 0} jogadas</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        carouselInner.appendChild(item);
+    });
+}
+
 function getGameCardHtml(game) {
     const uniqueId = game.docId || game.id;
+    const avgRating = game.averageRating || 0;
+    const ratingCount = game.ratingCount || 0;
+    const isRated = localStorage.getItem('rated-game-' + uniqueId) !== null;
+    
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) {
+        const starClass = i <= Math.round(avgRating) ? 'bi-star-fill active-star' : 'bi-star';
+        starsHtml += `<i class="bi ${starClass}" data-rating="${i}"></i>`;
+    }
+
     return `
     <div class="col" id="game-${uniqueId}">
         <div class="game-card-container position-relative">
@@ -238,6 +339,18 @@ function getGameCardHtml(game) {
                         ${game.school ? `<div class="small"><i class="bi bi-building"></i> ${game.school}</div>` : ''}
                         ${game.city ? `<div class="small"><i class="bi bi-geo-alt"></i> ${game.city}</div>` : ''}
                     </div>
+                    
+                    <!-- Sistema de Avaliação -->
+                    <div class="card-rating-container" onclick="event.stopPropagation();">
+                        <div class="star-rating ${isRated ? 'rated' : ''}" data-project-id="${uniqueId}">
+                            ${starsHtml}
+                        </div>
+                        <span class="rating-text">
+                            <span class="rating-value">${avgRating > 0 ? avgRating.toFixed(1) : '-.-'}</span> 
+                            (${ratingCount} ${ratingCount === 1 ? 'avaliação' : 'avaliações'})
+                        </span>
+                    </div>
+
                     <div class="d-flex justify-content-end mt-2">
                         <span class="plays-badge" id="plays-${uniqueId}" data-count="${game.plays || 0}" title="Partidas jogadas">
                             <i class="bi bi-controller"></i>
@@ -464,3 +577,115 @@ function applyFilters() {
     displayGames(currentPage);
     renderPagination();
 }
+
+// --- DELEGAÇÃO DE EVENTOS PARA AVALIAÇÃO DE ESTRELAS ---
+
+// Efeito de Hover ao passar o mouse nas estrelas
+gamesContainer.addEventListener('mouseover', (e) => {
+    const star = e.target.closest('.star-rating i');
+    if (star) {
+        const starContainer = star.closest('.star-rating');
+        if (starContainer.classList.contains('rated')) return;
+
+        const rating = parseInt(star.dataset.rating);
+        const stars = starContainer.querySelectorAll('i');
+        stars.forEach((s, idx) => {
+            if (idx < rating) {
+                s.className = 'bi bi-star-fill active-star';
+            } else {
+                s.className = 'bi bi-star';
+            }
+        });
+    }
+});
+
+// Restaurar visual quando o mouse sai do contêiner de estrelas
+gamesContainer.addEventListener('mouseout', (e) => {
+    const starContainer = e.target.closest('.star-rating');
+    if (starContainer && !starContainer.classList.contains('rated')) {
+        const projectId = starContainer.dataset.projectId;
+        const project = allGames.find(p => (p.docId || p.id) === projectId);
+        
+        if (project) {
+            const avg = project.averageRating || 0;
+            const stars = starContainer.querySelectorAll('i');
+            stars.forEach((s, idx) => {
+                if (idx < Math.round(avg)) {
+                    s.className = 'bi bi-star-fill active-star';
+                } else {
+                    s.className = 'bi bi-star';
+                }
+            });
+        }
+    }
+});
+
+// Clique na estrela para submeter avaliação
+gamesContainer.addEventListener('click', async (e) => {
+    const star = e.target.closest('.star-rating i');
+    if (star) {
+        e.stopPropagation(); // Evita abrir o modal do jogo
+        const starContainer = star.closest('.star-rating');
+        if (starContainer.classList.contains('rated')) return;
+
+        const projectId = starContainer.dataset.projectId;
+        const rating = parseInt(star.dataset.rating);
+        if (isNaN(rating) || rating < 1 || rating > 5) return;
+
+        try {
+            const response = await fetch(`/api/games/${projectId}/rate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rating })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Falha ao processar avaliação');
+            }
+
+            const result = await response.json();
+            
+            // Persistir no localStorage local
+            localStorage.setItem(`rated-game-${projectId}`, 'true');
+            
+            // Marcar como avaliado
+            starContainer.classList.add('rated');
+            
+            // Fixar a avaliação visualmente
+            const stars = starContainer.querySelectorAll('i');
+            stars.forEach((s, idx) => {
+                s.style.cursor = 'default';
+                if (idx < rating) {
+                    s.className = 'bi bi-star-fill active-star';
+                } else {
+                    s.className = 'bi bi-star';
+                }
+            });
+
+            // Atualizar valores de texto
+            const ratingText = starContainer.nextElementSibling;
+            if (ratingText) {
+                const count = result.ratingCount;
+                ratingText.innerHTML = `
+                    <span class="rating-value">${result.averageRating.toFixed(1)}</span> 
+                    (${count} ${count === 1 ? 'avaliação' : 'avaliações'})
+                `;
+            }
+
+            console.log(`[Rating Success] Registered ${rating} stars for game ${projectId}`);
+            
+            // Atualiza a lista interna para sincronizar o carrossel no topo em paralelo
+            const gameObj = allGames.find(p => (p.docId || p.id) === projectId);
+            if (gameObj) {
+                gameObj.averageRating = result.averageRating;
+                gameObj.ratingCount = result.ratingCount;
+                populateTopWeeklyCarousel(allGames);
+            }
+
+        } catch (err) {
+            console.error('Erro ao avaliar:', err.message);
+            alert('Não foi possível registrar sua avaliação: ' + err.message);
+        }
+    }
+});

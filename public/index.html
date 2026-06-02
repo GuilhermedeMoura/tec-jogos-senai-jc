@@ -45,8 +45,22 @@
                         Ver Jogos <i class="bi bi-arrow-right ms-2"></i>
                     </a>
                 </div>
-                <div class="col-lg-6 d-none d-lg-block text-center">
-                    <div class="hero-shape"></div>
+                <div class="col-lg-6 d-none d-lg-block">
+                    <div class="premium-carousel-wrapper position-relative">
+                        <!-- Glowing blob background behind the carousel -->
+                        <div class="carousel-glow-shape"></div>
+                        <div id="topWeeklyCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+                            <div class="carousel-indicators" id="carouselIndicators"></div>
+                            <div class="carousel-inner" id="carouselInner">
+                                <div class="carousel-item active">
+                                    <div class="carousel-loading-card">
+                                        <div class="spinner-border text-light mb-3" role="status"></div>
+                                        <p class="m-0 text-white-50">Carregando os mais jogados da semana...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

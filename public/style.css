@@ -389,3 +389,246 @@
  #playModal .modal-header * {
      pointer-events: auto;
  }
+
+ /* ==========================================
+    CARROSSEL PREMIUM DE DESTAQUES (HERO)
+    ========================================== */
+ .premium-carousel-wrapper {
+     max-width: 500px;
+     margin: 0 auto;
+     z-index: 5;
+ }
+
+ .carousel-glow-shape {
+     width: 320px;
+     height: 320px;
+     background: var(--accent-gradient);
+     border-radius: 50%;
+     filter: blur(80px);
+     opacity: 0.15;
+     position: absolute;
+     top: 50%;
+     left: 50%;
+     transform: translate(-50%, -50%);
+     z-index: -1;
+     animation: pulseGlow 6s ease-in-out infinite;
+ }
+
+ @keyframes pulseGlow {
+     0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.15; }
+     50% { transform: translate(-50%, -50%) scale(1.12); opacity: 0.22; }
+ }
+
+ .premium-carousel-card {
+     background: rgba(19, 20, 26, 0.7);
+     backdrop-filter: blur(15px);
+     -webkit-backdrop-filter: blur(15px);
+     border: 1px solid rgba(255, 255, 255, 0.1);
+     border-radius: var(--border-radius);
+     padding: 2.2rem;
+     min-height: 380px;
+     display: flex;
+     flex-direction: column;
+     justify-content: space-between;
+     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+     position: relative;
+     overflow: hidden;
+     transition: transform 0.3s ease, border-color 0.3s ease;
+ }
+
+ .premium-carousel-card:hover {
+     border-color: rgba(242, 84, 36, 0.4);
+     transform: translateY(-5px);
+ }
+
+ .premium-carousel-card::before {
+     content: '';
+     position: absolute;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 6px;
+     background: var(--accent-gradient);
+ }
+
+ .carousel-loading-card {
+     background: rgba(19, 20, 26, 0.7);
+     backdrop-filter: blur(15px);
+     border: 1px solid rgba(255, 255, 255, 0.1);
+     border-radius: var(--border-radius);
+     padding: 2.2rem;
+     min-height: 380px;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+ }
+
+ .top-rank-badge {
+     background: var(--accent-gradient);
+     color: #fff;
+     font-size: 0.75rem;
+     font-weight: 800;
+     text-transform: uppercase;
+     letter-spacing: 1.5px;
+     padding: 6px 16px;
+     border-radius: 50px;
+     display: inline-block;
+     align-self: flex-start;
+     box-shadow: 0 4px 10px rgba(242, 84, 36, 0.3);
+     margin-bottom: 1.2rem;
+ }
+
+ .carousel-project-info {
+     text-align: left;
+ }
+
+ .carousel-project-title {
+     font-size: 1.5rem;
+     font-weight: 800;
+     margin-bottom: 1rem;
+     color: #fff;
+     line-height: 1.25;
+ }
+
+ .carousel-meta-list {
+     list-style: none;
+     padding: 0;
+     margin: 0 0 1.5rem 0;
+     display: flex;
+     flex-direction: column;
+     gap: 0.5rem;
+ }
+
+ .carousel-meta-item {
+     font-size: 0.85rem;
+     color: var(--text-muted);
+     display: flex;
+     align-items: center;
+     gap: 0.6rem;
+ }
+
+ .carousel-meta-item strong {
+     color: rgba(255, 255, 255, 0.9);
+     font-weight: 600;
+ }
+
+ .carousel-meta-item i {
+     color: #f25424;
+     font-size: 0.95rem;
+     width: 20px;
+     text-align: center;
+ }
+
+ .carousel-action-row {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     width: 100%;
+     flex-wrap: wrap;
+     gap: 10px;
+ }
+
+ .carousel-play-btn {
+     border-radius: 50px;
+     padding: 8px 22px;
+     font-weight: 600;
+     font-size: 0.85rem;
+     display: inline-flex;
+     align-items: center;
+     gap: 0.5rem;
+     box-shadow: 0 4px 15px rgba(242, 84, 36, 0.2);
+ }
+
+ .carousel-stats-badge {
+     background: rgba(255, 255, 255, 0.05);
+     border: 1px solid rgba(255, 255, 255, 0.08);
+     color: var(--text-main);
+     font-size: 0.78rem;
+     font-weight: 600;
+     padding: 6px 14px;
+     border-radius: 50px;
+     display: inline-flex;
+     align-items: center;
+     gap: 0.4rem;
+ }
+
+ .carousel-stats-badge i {
+     color: #f8c037;
+ }
+
+ /* Modificações do Bootstrap Carousel */
+ .carousel-indicators {
+     bottom: -45px;
+ }
+
+ .carousel-indicators [data-bs-target] {
+     width: 10px;
+     height: 10px;
+     border-radius: 50%;
+     background-color: rgba(255, 255, 255, 0.3);
+     border: none;
+     margin: 0 4px;
+     transition: all 0.3s ease;
+ }
+
+ .carousel-indicators .active {
+     width: 28px;
+     border-radius: 5px;
+     background-color: #f25424;
+ }
+
+ /* ==========================================
+    SISTEMA DE AVALIAÇÃO DE ESTRELAS
+    ========================================== */
+ .card-rating-container {
+     display: flex;
+     align-items: center;
+     gap: 8px;
+     margin-top: 0.75rem;
+     user-select: none;
+ }
+
+ .star-rating {
+     display: inline-flex;
+     gap: 2px;
+ }
+
+ .star-rating .bi-star,
+ .star-rating .bi-star-fill {
+     font-size: 1.05rem;
+     color: rgba(255, 255, 255, 0.2);
+     cursor: pointer;
+     transition: color 0.15s ease, transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+ }
+
+ .star-rating:not(.rated) .bi-star:hover,
+ .star-rating:not(.rated) .bi-star-fill:hover {
+     transform: scale(1.28);
+ }
+
+ .star-rating .active-star {
+     color: #f8c037 !important;
+ }
+
+ .star-rating.rated .bi-star,
+ .star-rating.rated .bi-star-fill {
+     cursor: default;
+ }
+
+ .star-rating.rated .bi-star:hover,
+ .star-rating.rated .bi-star-fill:hover {
+     transform: none !important;
+ }
+
+ .rating-text {
+     font-size: 0.72rem;
+     color: var(--text-muted);
+     font-weight: 500;
+ }
+
+ .rating-value {
+     color: #f8c037;
+     font-weight: 700;
+     font-size: 0.78rem;
+ }
