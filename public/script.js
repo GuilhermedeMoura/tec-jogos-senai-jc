@@ -353,7 +353,7 @@ function getGameCardHtml(game) {
                     </div>
                     
                     <!-- Sistema de Avaliação -->
-                    <div class="card-rating-container" onclick="event.stopPropagation();">
+                    <div class="card-rating-container">
                         <div class="star-rating ${isRated ? 'rated' : ''}" data-project-id="${uniqueId}" data-current-avg="${avgRating}">
                             ${starsHtml}
                         </div>
