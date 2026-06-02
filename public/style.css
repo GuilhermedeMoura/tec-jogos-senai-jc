@@ -380,3 +380,12 @@
      align-items: center;
      justify-content: center;
  }
+
+ /* Impedir que o modal-header do playModal intercepte cliques que deveriam ir para o iframe */
+ #playModal .modal-header {
+     pointer-events: none;
+ }
+
+ #playModal .modal-header * {
+     pointer-events: auto;
+ }
