@@ -980,7 +980,7 @@ app.use('/sites/:siteId', async (req, res, next) => {
 app.use('/sites', caseInsensitiveStatic(SITES_FOLDER));
 app.use('/sites', express.static(SITES_FOLDER));
 
-app.post('/upload', rateLimiter(5, 60 * 60 * 1000), authenticateUser, uploadGame.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+app.post('/upload', rateLimiter(50, 60 * 60 * 1000), authenticateUser, uploadGame.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
     const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
     const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
@@ -1491,7 +1491,7 @@ app.get('/api/games', async (req, res) => {
 // SITES ROUTES
 // ============================================================
 
-app.post('/upload-site', rateLimiter(5, 60 * 60 * 1000), uploadSite.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+app.post('/upload-site', rateLimiter(50, 60 * 60 * 1000), uploadSite.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
     const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
     const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
