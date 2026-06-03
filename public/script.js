@@ -899,10 +899,17 @@ function setupAuthForms() {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('authRegName').value.trim();
+            const email = document.getElementById('authRegEmail').value.trim().toLowerCase();
             const username = document.getElementById('authRegUser').value.trim();
             const password = document.getElementById('authRegPass').value;
             const status = document.getElementById('registerStatus');
             
+            if (!email.endsWith('@aluno.educa.go.gov.br')) {
+                status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
+                status.className = "mt-2 text-center small text-danger";
+                return;
+            }
+
             status.innerText = "Criando conta...";
             status.className = "mt-2 text-center small text-warning";
             
@@ -910,7 +917,7 @@ function setupAuthForms() {
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, username, password })
+                    body: JSON.stringify({ name, email, username, password })
                 });
                 
                 const data = await response.json();

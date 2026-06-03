@@ -209,9 +209,10 @@ app.post('/api/auth/register', rateLimiter(10, 60 * 60 * 1000), async (req, res)
     try {
         const username = sanitizeInput(req.body.username, 30).toLowerCase();
         const name = sanitizeInput(req.body.name, 50);
+        const email = sanitizeInput(req.body.email, 100).toLowerCase();
         const password = req.body.password;
         
-        if (!username || !name || !password) {
+        if (!username || !name || !email || !password) {
             return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
         }
         
@@ -219,14 +220,27 @@ app.post('/api/auth/register', rateLimiter(10, 60 * 60 * 1000), async (req, res)
             return res.status(400).json({ error: 'Nome de usuário deve ter pelo menos 3 caracteres e a senha pelo menos 6.' });
         }
 
-        const q = query(collection(db, "users"), where("username", "==", username));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
+        // Validar e-mail escolar
+        if (!email.endsWith('@aluno.educa.go.gov.br')) {
+            return res.status(400).json({ error: 'Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).' });
+        }
+
+        // Verificar se usuário existe
+        const qUser = query(collection(db, "users"), where("username", "==", username));
+        const snapUser = await getDocs(qUser);
+        if (!snapUser.empty) {
             return res.status(400).json({ error: 'Este nome de usuário já está em uso.' });
+        }
+
+        // Verificar se e-mail existe
+        const qEmail = query(collection(db, "users"), where("email", "==", email));
+        const snapEmail = await getDocs(qEmail);
+        if (!snapEmail.empty) {
+            return res.status(400).json({ error: 'Este e-mail escolar já está cadastrado.' });
         }
         
         const { salt, hash } = hashPassword(password);
-        const newUser = { username, name, salt, hash, createdAt: Date.now() };
+        const newUser = { username, name, email, salt, hash, createdAt: Date.now() };
         const docRef = await addDoc(collection(db, "users"), newUser);
         
         const token = crypto.randomBytes(32).toString('hex');

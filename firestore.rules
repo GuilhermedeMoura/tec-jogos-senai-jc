@@ -21,5 +21,15 @@ service cloud.firestore {
       // Recomendação de Produção: Restringir a escrita apenas ao backend.
       allow write: if true;
     }
+
+    // Coleção de usuários (cadastro/login de alunos)
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Coleção de sessões (sessões ativas dos alunos)
+    match /sessions/{sessionId} {
+      allow read, write: if true;
+    }
   }
 }
