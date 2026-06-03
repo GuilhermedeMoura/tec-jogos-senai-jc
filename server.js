@@ -3,6 +3,7 @@ const multer = require('multer');
 const AdmZip = require('adm-zip');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // Firebase Initialization
 const { initializeApp } = require('firebase/app');
@@ -142,6 +143,164 @@ const uploadSite = multer({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// --- PASSWORD HASHING HELPERS ---
+function hashPassword(password) {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    return { salt, hash };
+}
+
+function verifyPassword(password, salt, hash) {
+    const checkHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    return checkHash === hash;
+}
+
+// --- STUDENT AUTHENTICATION SYSTEM ---
+
+// Auth Middleware
+async function authenticateUser(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        req.user = null;
+        return next();
+    }
+    
+    const token = authHeader.split(' ')[1];
+    try {
+        const q = query(collection(db, "sessions"), where("token", "==", token));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            req.user = null;
+            return next();
+        }
+        
+        let sessionDoc = null;
+        snap.forEach(d => { sessionDoc = { id: d.id, ...d.data() }; });
+        
+        if (sessionDoc.expiresAt < Date.now()) {
+            try { await deleteDoc(doc(db, "sessions", sessionDoc.id)); } catch (_) {}
+            req.user = null;
+            return next();
+        }
+        
+        req.user = {
+            userId: sessionDoc.userId,
+            username: sessionDoc.username,
+            name: sessionDoc.name
+        };
+    } catch (err) {
+        console.error('[Auth Middleware Error]', err);
+        req.user = null;
+    }
+    next();
+}
+
+// Strict Auth Middleware
+function requireAuth(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Você precisa estar logado para realizar esta ação.' });
+    }
+    next();
+}
+
+// Registro de Aluno
+app.post('/api/auth/register', rateLimiter(10, 60 * 60 * 1000), async (req, res) => {
+    try {
+        const username = sanitizeInput(req.body.username, 30).toLowerCase();
+        const name = sanitizeInput(req.body.name, 50);
+        const password = req.body.password;
+        
+        if (!username || !name || !password) {
+            return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+        }
+        
+        if (username.length < 3 || password.length < 6) {
+            return res.status(400).json({ error: 'Nome de usuário deve ter pelo menos 3 caracteres e a senha pelo menos 6.' });
+        }
+
+        const q = query(collection(db, "users"), where("username", "==", username));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            return res.status(400).json({ error: 'Este nome de usuário já está em uso.' });
+        }
+        
+        const { salt, hash } = hashPassword(password);
+        const newUser = { username, name, salt, hash, createdAt: Date.now() };
+        const docRef = await addDoc(collection(db, "users"), newUser);
+        
+        const token = crypto.randomBytes(32).toString('hex');
+        const session = {
+            token,
+            userId: docRef.id,
+            username,
+            name,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000
+        };
+        await addDoc(collection(db, "sessions"), session);
+        
+        res.status(201).json({
+            message: 'Conta criada com sucesso!',
+            token,
+            user: { id: docRef.id, username, name }
+        });
+    } catch (err) {
+        console.error('[Auth Register Error]', err);
+        res.status(500).json({ error: 'Erro ao criar conta: ' + err.message });
+    }
+});
+
+// Login de Aluno
+app.post('/api/auth/login', rateLimiter(30, 60 * 1000), async (req, res) => {
+    try {
+        const username = sanitizeInput(req.body.username, 30).toLowerCase();
+        const password = req.body.password;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+        }
+        
+        const q = query(collection(db, "users"), where("username", "==", username));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            return res.status(400).json({ error: 'Usuário ou senha incorretos.' });
+        }
+        
+        let userDoc = null;
+        snap.forEach(d => { userDoc = { id: d.id, ...d.data() }; });
+        
+        const isValid = verifyPassword(password, userDoc.salt, userDoc.hash);
+        if (!isValid) {
+            return res.status(400).json({ error: 'Usuário ou senha incorretos.' });
+        }
+        
+        const token = crypto.randomBytes(32).toString('hex');
+        const session = {
+            token,
+            userId: userDoc.id,
+            username: userDoc.username,
+            name: userDoc.name,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000
+        };
+        await addDoc(collection(db, "sessions"), session);
+        
+        res.json({
+            message: 'Login realizado com sucesso!',
+            token,
+            user: { id: userDoc.id, username: userDoc.username, name: userDoc.name }
+        });
+    } catch (err) {
+        console.error('[Auth Login Error]', err);
+        res.status(500).json({ error: 'Erro ao fazer login: ' + err.message });
+    }
+});
+
+// Obter dados do usuário logado
+app.get('/api/auth/me', authenticateUser, requireAuth, (req, res) => {
+    res.json({ user: req.user });
+});
 
 // Headers necessários para jogos Unity WebGL e Godot (SharedArrayBuffer)
 app.use('/games', (req, res, next) => {
@@ -807,7 +966,7 @@ app.use('/sites/:siteId', async (req, res, next) => {
 app.use('/sites', caseInsensitiveStatic(SITES_FOLDER));
 app.use('/sites', express.static(SITES_FOLDER));
 
-app.post('/upload', rateLimiter(5, 60 * 60 * 1000), uploadGame.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+app.post('/upload', rateLimiter(5, 60 * 60 * 1000), authenticateUser, uploadGame.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
     const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
     const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
@@ -1032,6 +1191,11 @@ app.post('/upload', rateLimiter(5, 60 * 60 * 1000), uploadGame.fields([{ name: '
             timestamp: Date.now(),
             createdAt: new Date().toISOString()
         };
+
+        if (req.user) {
+            newGame.ownerId = req.user.userId;
+            newGame.ownerName = req.user.name;
+        }
         
         // Save with explicit document ID for consistency
         const docRef = await addDoc(collection(db, "games"), newGame);
@@ -1043,6 +1207,222 @@ app.post('/upload', rateLimiter(5, 60 * 60 * 1000), uploadGame.fields([{ name: '
         if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
         console.error('[Error] Upload failed:', error);
         res.status(500).json({ error: 'Erro ao processar o jogo: ' + error.message });
+    }
+});
+
+// Atualizar / Sobrescrever Jogo
+app.post('/api/games/:gameId/update', rateLimiter(15, 60 * 1000), authenticateUser, requireAuth, uploadGame.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+    const gameId = req.params.gameId;
+    const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
+    const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
+
+    try {
+        // Find document in Firestore
+        const q = query(collection(db, "games"));
+        const snapshot = await getDocs(q);
+        let targetDocId = null;
+        let gameData = null;
+        
+        snapshot.forEach((docSnap) => {
+            if (docSnap.id === gameId || String(docSnap.data().id) === String(gameId)) {
+                targetDocId = docSnap.id;
+                gameData = docSnap.data();
+            }
+        });
+        
+        if (!targetDocId) {
+            if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(404).json({ error: 'Jogo não encontrado' });
+        }
+        
+        // Authorization check: User must be owner
+        if (gameData.ownerId !== req.user.userId) {
+            if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(403).json({ error: 'Você não tem permissão para editar este jogo.' });
+        }
+
+        // Sanitize input
+        const gameTitle = sanitizeInput(req.body.gameTitle, 50);
+        const gameCategory = sanitizeInput(req.body.gameCategory, 30);
+        const city = sanitizeInput(req.body.city, 30);
+        const school = sanitizeInput(req.body.school, 100);
+        const studentClass = sanitizeInput(req.body.studentClass, 100);
+        const teacher = sanitizeInput(req.body.teacher, 30);
+        
+        if (!gameTitle || !gameCategory || !city || !school || !studentClass || !teacher) {
+            if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Campos obrigatórios vazios.' });
+        }
+
+        const updates = {
+            title: gameTitle,
+            category: gameCategory,
+            city: city || null,
+            school: school || null,
+            studentClass: studentClass || null,
+            teacher: teacher || null,
+        };
+
+        const localGamePath = path.join(GAMES_FOLDER, gameId);
+        let storageFileRef = ref(storage, `games/${gameId}.zip`);
+
+        // Handle replacement of ZIP/HTML/Python file
+        if (file) {
+            // Validate extension and size
+            const gameExt = path.extname(file.originalname).toLowerCase();
+            if (!['.zip', '.html', '.py'].includes(gameExt)) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'Arquivo inválido. Formatos permitidos: .zip, .html, .py' });
+            }
+
+            if (gameExt === '.html' || gameExt === '.py') {
+                if (file.size > 5 * 1024 * 1024) {
+                    try { fs.unlinkSync(file.path); } catch (_) {}
+                    if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                    return res.status(400).json({ error: 'Arquivos individuais (.html, .py) não devem exceder 5 MB.' });
+                }
+            } else if (gameExt === '.zip') {
+                if (file.size > 100 * 1024 * 1024) {
+                    try { fs.unlinkSync(file.path); } catch (_) {}
+                    if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                    return res.status(400).json({ error: 'O arquivo ZIP do jogo não deve exceder 100 MB.' });
+                }
+                try {
+                    validateZipArchive(file.path, 150 * 1024 * 1024, 1500);
+                } catch (zipErr) {
+                    try { fs.unlinkSync(file.path); } catch (_) {}
+                    if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                    return res.status(400).json({ error: `ZIP inválido: ${zipErr.message}` });
+                }
+            }
+
+            // Clean old local extraction cache folder to write fresh files
+            if (fs.existsSync(localGamePath)) {
+                try { fs.rmSync(localGamePath, { recursive: true, force: true }); } catch (_) {}
+            }
+            try { fs.mkdirSync(localGamePath, { recursive: true }); } catch (_) {}
+
+            let indexHtmlPath = null;
+            let indexInfo = null;
+            let gameType = 'html';
+
+            if (file.originalname.toLowerCase().endsWith('.zip')) {
+                const zip = new AdmZip(file.path);
+                zip.extractAllTo(localGamePath, true);
+                indexInfo = findIndexHtml(localGamePath);
+                if (indexInfo) {
+                    indexHtmlPath = indexInfo.dirPath;
+                } else {
+                    const pythonInfo = findMainPython(localGamePath);
+                    if (pythonInfo) {
+                        reorganizeGameFiles(localGamePath, pythonInfo.dirPath);
+                        const runnerHtml = generatePygbagRunner(pythonInfo.fileName, localGamePath);
+                        fs.writeFileSync(path.join(localGamePath, 'index.html'), runnerHtml);
+                        indexHtmlPath = localGamePath;
+                        indexInfo = { dirPath: localGamePath, fileName: 'index.html' };
+                        gameType = 'python';
+                    }
+                }
+                const repackZip = new AdmZip();
+                repackZip.addLocalFolder(localGamePath);
+                const repackBuffer = repackZip.toBuffer();
+                await uploadBytes(storageFileRef, repackBuffer, { contentType: 'application/zip' });
+            } else if (file.originalname.toLowerCase().endsWith('.html')) {
+                fs.copyFileSync(file.path, path.join(localGamePath, 'index.html'));
+                indexHtmlPath = localGamePath;
+                const zipOut = new AdmZip();
+                zipOut.addLocalFile(file.path);
+                const outBuffer = zipOut.toBuffer();
+                await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
+            } else if (file.originalname.toLowerCase().endsWith('.py')) {
+                fs.copyFileSync(file.path, path.join(localGamePath, file.originalname));
+                const runnerHtml = generatePygbagRunner(file.originalname, localGamePath);
+                fs.writeFileSync(path.join(localGamePath, 'index.html'), runnerHtml);
+                indexHtmlPath = localGamePath;
+                indexInfo = { dirPath: localGamePath, fileName: 'index.html' };
+                gameType = 'python';
+
+                const zipOut = new AdmZip();
+                zipOut.addLocalFolder(localGamePath);
+                const outBuffer = zipOut.toBuffer();
+                await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
+            }
+
+            try { fs.unlinkSync(file.path); } catch (_) {}
+
+            if (!indexHtmlPath || !fs.existsSync(path.join(localGamePath, 'index.html'))) {
+                return res.status(400).json({ error: 'Nenhum ponto de entrada encontrado (.html/.py).' });
+            }
+
+            reorganizeGameFiles(localGamePath, indexHtmlPath);
+            if (indexInfo && indexInfo.fileName !== 'index.html') {
+                const originalHtml = path.join(localGamePath, indexInfo.fileName);
+                const targetHtml = path.join(localGamePath, 'index.html');
+                if (fs.existsSync(originalHtml)) fs.renameSync(originalHtml, targetHtml);
+            }
+            convertAbsolutePathsToRelative(localGamePath);
+
+            updates.gameType = gameType;
+            console.log(`[Update] Replaced game file for ${gameId}. Type: ${gameType}`);
+        }
+
+        // Handle replacement of Cover Image
+        if (coverFile) {
+            const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const ext = path.extname(coverFile.originalname).toLowerCase();
+            const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+            if (!allowedMimes.includes(coverFile.mimetype) || !allowedExts.includes(ext)) {
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa deve ser um formato válido.' });
+            }
+            if (coverFile.size > 5 * 1024 * 1024) {
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa não deve exceder 5 MB.' });
+            }
+
+            try {
+                // Delete previous cover if exists from firebase storage
+                if (gameData.coverUrl) {
+                    try {
+                        const parsedUrl = new URL(gameData.coverUrl);
+                        const oldCoverPath = decodeURIComponent(parsedUrl.pathname.split('/o/')[1].split('?')[0]);
+                        const oldCoverRef = ref(storage, oldCoverPath);
+                        await deleteObject(oldCoverRef);
+                    } catch (delCoverErr) {
+                        console.warn('[Update] Could not delete old cover (non-critical):', delCoverErr.message);
+                    }
+                }
+                
+                const coverExt = path.extname(coverFile.originalname) || '.jpg';
+                const coverStorageRef = ref(storage, `covers/${gameId}${coverExt}`);
+                const coverBuffer = fs.readFileSync(coverFile.path);
+                const coverMime = coverFile.mimetype || 'image/jpeg';
+                await uploadBytes(coverStorageRef, coverBuffer, { contentType: coverMime });
+                const coverUrl = await getDownloadURL(coverStorageRef);
+                updates.coverUrl = coverUrl;
+                console.log(`[Update] Cover image replaced for game ${gameId}: ${coverUrl}`);
+            } catch (coverErr) {
+                console.error('[Update Error] Cover upload failed:', coverErr.message);
+            } finally {
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            }
+        }
+
+        // Update Firestore document
+        await updateDoc(doc(db, "games", targetDocId), updates);
+        console.log(`[Update] Game ${gameId} successfully updated in Firestore.`);
+
+        res.json({ message: 'Jogo atualizado com sucesso!', game: { ...gameData, ...updates } });
+
+    } catch (error) {
+        if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+        if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+        console.error('[Update Error] Failed to update game:', error);
+        res.status(500).json({ error: 'Erro ao atualizar o jogo: ' + error.message });
     }
 });
 

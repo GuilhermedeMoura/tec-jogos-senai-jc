@@ -25,6 +25,11 @@
             <div class="d-flex align-items-center gap-3">
                 <a href="/" class="nav-link text-light fw-semibold"><i class="bi bi-joystick me-1"></i>Jogos</a>
                 <a href="/sites.html" class="nav-link text-light opacity-75"><i class="bi bi-code-slash me-1"></i>Sites</a>
+                <div id="authNavContainer" class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#authModal" id="navLoginBtn">
+                        <i class="bi bi-person-fill me-1"></i> Entrar
+                    </button>
+                </div>
                 <button class="btn btn-modern-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-upload"></i> Enviar Jogo
                 </button>
@@ -248,6 +253,176 @@
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Publicar</button>
                                 </div>
                                 <div id="uploadStatus" class="mt-2 text-center small"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Autenticação (Login / Cadastro) -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-clean">
+                <div class="modal-body p-5">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4" data-bs-dismiss="modal"></button>
+                    
+                    <ul class="nav nav-pills nav-justified mb-4" id="authTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginTabContent" type="button" role="tab">Entrar</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="pill" data-bs-target="#registerTabContent" type="button" role="tab">Cadastrar</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="authTabsContent">
+                        <div class="tab-pane fade show active" id="loginTabContent" role="tabpanel">
+                            <h3 class="mb-3 fw-bold text-center">Login do Aluno</h3>
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Usuário</label>
+                                    <input type="text" class="form-control form-control-clean" id="authLoginUser" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Senha</label>
+                                    <input type="password" class="form-control form-control-clean" id="authLoginPass" required>
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Entrar</button>
+                                </div>
+                                <div id="loginStatus" class="mt-2 text-center small text-danger"></div>
+                            </form>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="registerTabContent" role="tabpanel">
+                            <h3 class="mb-3 fw-bold text-center">Nova Conta</h3>
+                            <form id="registerForm">
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Nome Completo</label>
+                                    <input type="text" class="form-control form-control-clean" id="authRegName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Usuário (Apelido)</label>
+                                    <input type="text" class="form-control form-control-clean" id="authRegUser" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Senha (mínimo 6 chars)</label>
+                                    <input type="password" class="form-control form-control-clean" id="authRegPass" required minlength="6">
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Cadastrar</button>
+                                </div>
+                                <div id="registerStatus" class="mt-2 text-center small"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Game -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-clean">
+                <div class="modal-body p-5">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4"
+                        data-bs-dismiss="modal"></button>
+                    <div class="row">
+                        <div class="col-md-5 d-flex align-items-center justify-content-center bg-modal-side rounded-start">
+                            <div class="text-center">
+                                <i class="bi bi-pencil-square display-3 text-gradient mb-3"></i>
+                                <h5>Editar Jogo</h5>
+                                <p class="small text-white-50">Atualize as informações ou substitua os arquivos.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-7 p-4">
+                            <h3 class="mb-4 fw-bold">Atualizar Jogo</h3>
+                            <form id="editGameForm" enctype="multipart/form-data" novalidate>
+                                <input type="hidden" id="editGameId">
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Nome do Jogo</label>
+                                    <input type="text" name="gameTitle" class="form-control form-control-clean"
+                                        id="editGameTitle" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Categoria</label>
+                                    <select name="gameCategory" class="form-select form-control-clean"
+                                        id="editGameCategory">
+                                        <option value="Ação">Ação</option>
+                                        <option value="Puzzle">Puzzle</option>
+                                        <option value="Aventura">Aventura</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Cidade</label>
+                                    <select class="form-select form-control-clean" id="editCitySelect" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Goiania">Goiânia</option>
+                                        <option value="Trindade">Trindade</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Escola</label>
+                                    <select class="form-select form-control-clean" id="editSchoolSelect" required>
+                                        <option value="">Selecione a cidade primeiro</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Turma</label>
+                                    <select class="form-select form-control-clean" id="editClassSelect" required>
+                                        <option value="">Selecione a escola primeiro</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Professor</label>
+                                    <select class="form-select form-control-clean" id="editTeacherSelect" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Heberson">Heberson</option>
+                                        <option value="Guilherme">Guilherme</option>
+                                        <option value="Francisco">Francisco</option>
+                                        <option value="Patrícia">Patrícia</option>
+                                        <option value="Agenor">Agenor</option>
+                                        <option value="Cleusa">Cleusa</option>
+                                        <option value="Victor">Victor</option>
+                                        <option value="Daniel">Daniel</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">
+                                        Substituir Arquivo do Jogo
+                                        <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Opcional</span>
+                                    </label>
+                                    <input type="file" name="gameFile" class="form-control form-control-clean"
+                                        id="editGameFile" accept=".zip,.html,.py">
+                                    <div class="mt-1" style="font-size:.72rem;opacity:.55;">
+                                        Deixe vazio para manter a versão atual do arquivo.
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label text-secundary small">
+                                        Substituir Imagem de Capa
+                                        <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Opcional</span>
+                                    </label>
+                                    <input type="file" name="coverImage" class="form-control form-control-clean"
+                                        id="editCoverImage" accept="image/*">
+                                    <div class="mt-1" style="font-size:.72rem;opacity:.55;">
+                                        Deixe vazio para manter a imagem de capa atual.
+                                    </div>
+                                    <div id="editCoverPreviewWrapper" class="mt-2 d-none">
+                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="editCoverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Salvar Alterações</button>
+                                </div>
+                                <div id="editStatus" class="mt-2 text-center small"></div>
                             </form>
                         </div>
                     </div>

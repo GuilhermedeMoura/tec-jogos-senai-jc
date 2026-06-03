@@ -26,7 +26,12 @@ const schoolsData = {
     ]
 };
 
-document.addEventListener('DOMContentLoaded', loadGames);
+document.addEventListener('DOMContentLoaded', () => {
+    loadGames();
+    updateAuthNavbar();
+    setupAuthForms();
+    setupEditForm();
+});
 
 // --- LÓGICA DO MODAL DE UPLOAD ---
 const citySelect = document.getElementById('citySelect');
@@ -128,8 +133,15 @@ form.addEventListener('submit', async (e) => {
         formData.append('gameFile', gameFile);
         if (coverFile) formData.append('coverImage', coverFile);
 
+        const token = localStorage.getItem('student_token');
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch('/upload', {
             method: 'POST',
+            headers: headers,
             body: formData
         });
 
@@ -314,6 +326,14 @@ function getGameCardHtml(game) {
     const ratingCount = game.ratingCount || 0;
     const isRated = localStorage.getItem('rated-game-' + uniqueId) !== null;
     
+    const currentUser = JSON.parse(localStorage.getItem('student_user') || 'null');
+    const isOwner = currentUser && game.ownerId === currentUser.id;
+    const editBtnHtml = isOwner ? `
+        <button class="btn btn-edit-game-card btn-edit-game" title="Editar jogo" data-game-id="${uniqueId}">
+            <i class="bi bi-pencil-fill"></i>
+        </button>
+    ` : '';
+    
     let starsHtml = '';
     for (let i = 1; i <= 5; i++) {
         const starClass = i <= Math.round(avgRating) ? 'bi-star-fill active-star' : 'bi-star';
@@ -334,6 +354,7 @@ function getGameCardHtml(game) {
                  data-game-type="${game.gameType || 'html'}"
                  style="cursor: pointer;">
                 <div class="game-img-wrapper">
+                    ${editBtnHtml}
                     <img src="${game.coverUrl || `https://source.unsplash.com/600x400/?${game.category},game`}" class="game-img" alt="${game.title}" onerror="this.src='https://via.placeholder.com/600x400?text=${encodeURIComponent(game.title)}'">
                     <div class="game-card-overlay">
                         <button class="btn btn-play-hover">
@@ -478,6 +499,14 @@ function renderPagination() {
 }
 
 gamesContainer.addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('.btn-edit-game');
+    if (editBtn) {
+        e.stopPropagation();
+        const gameId = editBtn.dataset.gameId;
+        openEditModal(gameId);
+        return;
+    }
+
     const playBtn = e.target.closest('[class*="btn-play"]');
 
     if (playBtn) {
@@ -789,3 +818,307 @@ gamesContainer.addEventListener('click', async (e) => {
         }
     }
 });
+
+// --- CLIENT AUTHENTICATION AND LOGGED-IN ACTIONS LOGIC ---
+
+function updateAuthNavbar() {
+    const container = document.getElementById('authNavContainer');
+    if (!container) return;
+    
+    const token = localStorage.getItem('student_token');
+    const user = JSON.parse(localStorage.getItem('student_user') || 'null');
+    
+    if (token && user) {
+        container.innerHTML = `
+            <span class="text-white-50 small me-1"><i class="bi bi-person-circle"></i> Olá, ${user.name}</span>
+            <button class="btn btn-outline-danger btn-sm rounded-pill px-3" id="navLogoutBtn">Sair</button>
+        `;
+        document.getElementById('navLogoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('student_token');
+            localStorage.removeItem('student_user');
+            updateAuthNavbar();
+            loadGames();
+        });
+    } else {
+        container.innerHTML = `
+            <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#authModal" id="navLoginBtn">
+                <i class="bi bi-person-fill me-1"></i> Entrar
+            </button>
+        `;
+    }
+}
+
+function setupAuthForms() {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('authLoginUser').value.trim();
+            const password = document.getElementById('authLoginPass').value;
+            const status = document.getElementById('loginStatus');
+            
+            status.innerText = "Entrando...";
+            status.className = "mt-2 text-center small text-warning";
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erro ao fazer login.');
+                
+                localStorage.setItem('student_token', data.token);
+                localStorage.setItem('student_user', JSON.stringify(data.user));
+                
+                status.innerText = "Login realizado com sucesso!";
+                status.className = "mt-2 text-center small text-success";
+                
+                loginForm.reset();
+                
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    if (modal) modal.hide();
+                    status.innerText = "";
+                    updateAuthNavbar();
+                    loadGames();
+                }, 1000);
+                
+            } catch (err) {
+                status.innerText = err.message;
+                status.className = "mt-2 text-center small text-danger";
+            }
+        });
+    }
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('authRegName').value.trim();
+            const username = document.getElementById('authRegUser').value.trim();
+            const password = document.getElementById('authRegPass').value;
+            const status = document.getElementById('registerStatus');
+            
+            status.innerText = "Criando conta...";
+            status.className = "mt-2 text-center small text-warning";
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, username, password })
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erro ao registrar.');
+                
+                localStorage.setItem('student_token', data.token);
+                localStorage.setItem('student_user', JSON.stringify(data.user));
+                
+                status.innerText = "Conta criada com sucesso!";
+                status.className = "mt-2 text-center small text-success";
+                
+                registerForm.reset();
+                
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    if (modal) modal.hide();
+                    status.innerText = "";
+                    updateAuthNavbar();
+                    loadGames();
+                }, 1000);
+                
+            } catch (err) {
+                status.innerText = err.message;
+                status.className = "mt-2 text-center small text-danger";
+            }
+        });
+    }
+}
+
+function populateEditSchools(city, selectedSchool = '') {
+    const schoolSelect = document.getElementById('editSchoolSelect');
+    schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
+    
+    if (city && schoolsData[city]) {
+        schoolSelect.innerHTML = '<option value="">Selecione...</option>';
+        schoolsData[city].forEach(school => {
+            const opt = document.createElement('option');
+            opt.value = school;
+            opt.textContent = school;
+            if (school === selectedSchool) opt.selected = true;
+            schoolSelect.appendChild(opt);
+        });
+    }
+}
+
+function populateEditClasses(school, selectedClass = '') {
+    const classSelect = document.getElementById('editClassSelect');
+    classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+    
+    if (school) {
+        classSelect.innerHTML = `
+        <option value="">Selecione...</option>
+        <option value="1° Ano Técnico em Programação de Jogos Digitais">1° Ano Técnico em Programação de Jogos Digitais</option>
+        <option value="1° Ano Técnico em Desenvolvimento de Sistemas">1° Ano Técnico em Desenvolvimento de Sistemas</option>
+        <option value="2° Ano Técnico em Programação de Jogos Digitais">2° Ano Técnico em Programação de Jogos Digitais</option>
+        <option value="2° Ano Técnico em Desenvolvimento de Sistemas">2° Ano Técnico em Desenvolvimento de Sistemas</option>
+        `;
+        if (selectedClass) classSelect.value = selectedClass;
+    }
+}
+
+function openEditModal(gameId) {
+    const game = allGames.find(g => (g.docId || g.id) === gameId);
+    if (!game) return;
+    
+    document.getElementById('editGameId').value = gameId;
+    document.getElementById('editGameTitle').value = game.title || '';
+    document.getElementById('editGameCategory').value = game.category || 'Ação';
+    
+    const citySelect = document.getElementById('editCitySelect');
+    const schoolSelect = document.getElementById('editSchoolSelect');
+    const classSelect = document.getElementById('editClassSelect');
+    const teacherSelect = document.getElementById('editTeacherSelect');
+    
+    citySelect.value = game.city || '';
+    
+    populateEditSchools(game.city, game.school);
+    populateEditClasses(game.school, game.studentClass);
+    
+    teacherSelect.value = game.teacher || '';
+    
+    // Limpa campos de arquivo
+    document.getElementById('editGameFile').value = '';
+    document.getElementById('editCoverImage').value = '';
+    
+    const previewWrapper = document.getElementById('editCoverPreviewWrapper');
+    const previewImg = document.getElementById('editCoverPreview');
+    if (game.coverUrl) {
+        previewImg.src = game.coverUrl;
+        previewWrapper.classList.remove('d-none');
+    } else {
+        previewImg.src = '';
+        previewWrapper.classList.add('d-none');
+    }
+    
+    document.getElementById('editStatus').innerText = '';
+    
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+}
+
+function setupEditForm() {
+    const citySelect = document.getElementById('editCitySelect');
+    const schoolSelect = document.getElementById('editSchoolSelect');
+    const classSelect = document.getElementById('editClassSelect');
+    
+    if (citySelect && schoolSelect && classSelect) {
+        citySelect.addEventListener('change', () => {
+            populateEditSchools(citySelect.value);
+            classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+        });
+        
+        schoolSelect.addEventListener('change', () => {
+            populateEditClasses(schoolSelect.value);
+        });
+    }
+    
+    const coverInput = document.getElementById('editCoverImage');
+    const previewWrapper = document.getElementById('editCoverPreviewWrapper');
+    const previewImg = document.getElementById('editCoverPreview');
+    
+    if (coverInput) {
+        coverInput.addEventListener('change', () => {
+            const file = coverInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewWrapper.classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    const editGameForm = document.getElementById('editGameForm');
+    if (editGameForm) {
+        editGameForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = editGameForm.querySelector('button[type="submit"]');
+            const status = document.getElementById('editStatus');
+            
+            status.innerText = "Salvando alterações...";
+            status.className = "mt-2 text-center small text-warning";
+            submitBtn.disabled = true;
+            
+            const gameId = document.getElementById('editGameId').value;
+            const gameTitle = document.getElementById('editGameTitle').value.trim();
+            const gameCategory = document.getElementById('editGameCategory').value;
+            const city = document.getElementById('editCitySelect').value;
+            const school = document.getElementById('editSchoolSelect').value;
+            const studentClass = document.getElementById('editClassSelect').value;
+            const teacher = document.getElementById('editTeacherSelect').value;
+            
+            const gameFile = document.getElementById('editGameFile').files[0] || null;
+            const coverFile = document.getElementById('editCoverImage').files[0] || null;
+            
+            if (!gameTitle || !gameCategory || !city || !school || !studentClass || !teacher) {
+                status.innerText = "Preencha todos os campos obrigatórios.";
+                status.className = "mt-2 text-center small text-danger";
+                submitBtn.disabled = false;
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('gameTitle', gameTitle);
+            formData.append('gameCategory', gameCategory);
+            formData.append('city', city);
+            formData.append('school', school);
+            formData.append('studentClass', studentClass);
+            formData.append('teacher', teacher);
+            
+            if (gameFile) formData.append('gameFile', gameFile);
+            if (coverFile) formData.append('coverImage', coverFile);
+            
+            const token = localStorage.getItem('student_token');
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            try {
+                const response = await fetch(`/api/games/${gameId}/update`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erro ao atualizar o jogo.');
+                
+                status.innerText = "Jogo atualizado com sucesso!";
+                status.className = "mt-2 text-center small text-success";
+                
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                    if (modal) modal.hide();
+                    status.innerText = "";
+                    loadGames();
+                }, 1500);
+                
+            } catch (err) {
+                status.innerText = err.message;
+                status.className = "mt-2 text-center small text-danger";
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    }
+}
