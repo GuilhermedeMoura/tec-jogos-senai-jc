@@ -77,9 +77,9 @@
             <div class="row g-3">
                 <!-- Pesquisa por Aluno -->
                 <div class="col-md-4">
-                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno</label>
+                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno ou Professor</label>
                     <input type="text" id="searchInput" class="form-control form-control-clean"
-                        placeholder="Digite o nome...">
+                        placeholder="Digite o nome do aluno, site ou professor...">
                 </div>
                 <!-- Filtro Cidade -->
                 <div class="col-md-2">
@@ -835,12 +835,13 @@
             filteredSites = allSites.filter(site => {
                 const author = (site.author || '').toLowerCase();
                 const title = (site.title || '').toLowerCase();
+                const teacher = (site.teacher || '').toLowerCase();
                 const city = site.city || '';
                 const school = site.school || '';
                 const year = site.studentClass || '';
 
-                // Filtro de pesquisa (Aluno ou Título)
-                let matchSearch = !searchTerm || author.includes(searchTerm) || title.includes(searchTerm);
+                // Filtro de pesquisa (Aluno, Título ou Professor)
+                let matchSearch = !searchTerm || author.includes(searchTerm) || title.includes(searchTerm) || teacher.includes(searchTerm);
                 
                 // Filtros exatos
                 let matchCity = !cityValue || city === cityValue;

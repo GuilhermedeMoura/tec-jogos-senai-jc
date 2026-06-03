@@ -250,7 +250,12 @@ function populateTopWeeklyCarousel(games) {
         item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
         
         item.innerHTML = `
-            <div class="premium-carousel-card" style="background-image: linear-gradient(135deg, rgba(19, 20, 26, 0.95) 45%, rgba(19, 20, 26, 0.35) 100%), url('${coverImg}'); cursor: pointer;" onclick="playGame('${game.url}', '${game.title.replace(/'/g, "\\'")}')">
+            <div class="premium-carousel-card" 
+                 data-game-id="${uniqueId}" 
+                 data-game-url="${game.url}" 
+                 data-game-title="${game.title.replace(/"/g, '&quot;')}" 
+                 data-game-type="${game.gameType || 'html'}"
+                 style="background-image: linear-gradient(135deg, rgba(19, 20, 26, 0.95) 45%, rgba(19, 20, 26, 0.35) 100%), url('${coverImg}'); cursor: pointer;">
                 <div class="top-rank-badge">
                     <i class="bi bi-trophy-fill me-1"></i> TOP #${index + 1}
                 </div>
@@ -504,6 +509,39 @@ gamesContainer.addEventListener('click', async (e) => {
     }
 });
 
+const carouselInner = document.getElementById('carouselInner');
+if (carouselInner) {
+    carouselInner.addEventListener('click', (e) => {
+        const card = e.target.closest('.premium-carousel-card');
+        if (card) {
+            const url = card.dataset.gameUrl;
+            const title = card.dataset.gameTitle;
+            const gameType = card.dataset.gameType;
+            const gameId = card.dataset.gameId;
+
+            // Incrementa contador (fire-and-forget)
+            fetch(`/api/games/${gameId}/play`, { method: 'POST' })
+                .then(() => {
+                    const badge = document.getElementById(`plays-${gameId}`);
+                    if (badge) {
+                        const cur = parseInt(badge.dataset.count || '0') + 1;
+                        badge.dataset.count = cur;
+                        badge.innerHTML = `<i class="bi bi-controller"></i> ${cur} ${cur === 1 ? 'jogada' : 'jogadas'}`;
+                    }
+                })
+                .catch(() => { });
+
+            // Jogos Python abrem em nova aba
+            if (gameType === 'python') {
+                window.open(url, '_blank', 'noopener');
+                return;
+            }
+
+            playGame(url, title);
+        }
+    });
+}
+
 function playGame(url, title) {
     try {
         const gameFrame = document.getElementById('gameFrame');
@@ -571,12 +609,13 @@ function applyFilters() {
     filteredGames = allGames.filter(game => {
         const author = (game.author || '').toLowerCase();
         const title = (game.title || '').toLowerCase();
+        const teacher = (game.teacher || '').toLowerCase();
         const city = game.city || '';
         const school = game.school || '';
         const year = game.studentClass || '';
 
-        // Filtro de pesquisa (Aluno ou Título)
-        let matchSearch = !searchTerm || author.includes(searchTerm) || title.includes(searchTerm);
+        // Filtro de pesquisa (Aluno, Título ou Professor)
+        let matchSearch = !searchTerm || author.includes(searchTerm) || title.includes(searchTerm) || teacher.includes(searchTerm);
         
         // Filtros exatos
         let matchCity = !cityValue || city === cityValue;
