@@ -31,5 +31,10 @@ service cloud.firestore {
     match /sessions/{sessionId} {
       allow read, write: if true;
     }
+
+    // Coleção de recuperação de senhas (tokens de redefinição)
+    match /password_resets/{resetId} {
+      allow read, write: if true;
+    }
   }
 }
