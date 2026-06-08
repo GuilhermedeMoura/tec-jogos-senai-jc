@@ -316,6 +316,108 @@ app.get('/api/auth/me', authenticateUser, requireAuth, (req, res) => {
     res.json({ user: req.user });
 });
 
+// Solicitar recuperação de senha
+app.post('/api/auth/forgot-password', rateLimiter(10, 15 * 60 * 1000), async (req, res) => {
+    try {
+        const email = sanitizeInput(req.body.email, 100).toLowerCase();
+        
+        if (!email) {
+            return res.status(400).json({ error: 'E-mail é obrigatório.' });
+        }
+        
+        // Procurar o usuário pelo e-mail escolar
+        const q = query(collection(db, "users"), where("email", "==", email));
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+            // Retorna sucesso de qualquer forma por segurança contra enumeração de e-mails
+            return res.json({ message: 'Se o e-mail estiver cadastrado, as instruções foram enviadas para seu e-mail escolar.' });
+        }
+        
+        let userDoc = null;
+        snap.forEach(d => { userDoc = { id: d.id, ...d.data() }; });
+        
+        // Limpar tokens antigos desse usuário antes de criar um novo
+        try {
+            const qOld = query(collection(db, "password_resets"), where("userId", "==", userDoc.id));
+            const oldResets = await getDocs(qOld);
+            oldResets.forEach(async (oldDoc) => {
+                await deleteDoc(doc(db, "password_resets", oldDoc.id));
+            });
+        } catch (_) {}
+        
+        // Gerar token de redefinição
+        const token = crypto.randomBytes(32).toString('hex');
+        const resetEntry = {
+            token,
+            userId: userDoc.id,
+            email: userDoc.email,
+            expiresAt: Date.now() + 60 * 60 * 1000 // 1 hora
+        };
+        
+        await addDoc(collection(db, "password_resets"), resetEntry);
+        
+        // Exibir link no console do servidor para redefinição local
+        const resetLink = `http://localhost:${PORT}/reset-password.html?token=${token}`;
+        console.log(`\n========================================`);
+        console.log(`[PASSWORD RESET] Solicitação para usuário: ${userDoc.username}`);
+        console.log(`Link: ${resetLink}`);
+        console.log(`========================================\n`);
+        
+        res.json({ message: 'Se o e-mail estiver cadastrado, as instruções foram enviadas para seu e-mail escolar.' });
+    } catch (err) {
+        console.error('[Auth Forgot Error]', err);
+        res.status(500).json({ error: 'Erro ao processar solicitação: ' + err.message });
+    }
+});
+
+// Redefinir a senha usando o token
+app.post('/api/auth/reset-password', rateLimiter(10, 60 * 1000), async (req, res) => {
+    try {
+        const token = sanitizeInput(req.body.token, 100);
+        const newPassword = req.body.newPassword;
+        
+        if (!token || !newPassword) {
+            return res.status(400).json({ error: 'Token e nova senha são obrigatórios.' });
+        }
+        
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres.' });
+        }
+        
+        // Verificar se o token existe e é válido
+        const q = query(collection(db, "password_resets"), where("token", "==", token));
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+            return res.status(400).json({ error: 'Link de redefinição inválido ou expirado.' });
+        }
+        
+        let resetDocVal = null;
+        snap.forEach(d => { resetDocVal = { id: d.id, ...d.data() }; });
+        
+        if (resetDocVal.expiresAt < Date.now()) {
+            try { await deleteDoc(doc(db, "password_resets", resetDocVal.id)); } catch (_) {}
+            return res.status(400).json({ error: 'Este link de redefinição de senha já expirou.' });
+        }
+        
+        // Gerar novo salt e hash para a nova senha
+        const { salt, hash } = hashPassword(newPassword);
+        
+        // Atualizar o documento do usuário
+        await updateDoc(doc(db, "users", resetDocVal.userId), { salt, hash });
+        console.log(`[Firestore] Senha atualizada para o usuário com ID: ${resetDocVal.userId}`);
+        
+        // Deletar o token de redefinição utilizado
+        await deleteDoc(doc(db, "password_resets", resetDocVal.id));
+        
+        res.json({ message: 'Senha redefinida com sucesso! Você já pode fazer login.' });
+    } catch (err) {
+        console.error('[Auth Reset Error]', err);
+        res.status(500).json({ error: 'Erro ao redefinir a senha: ' + err.message });
+    }
+});
+
 // Headers necessários para jogos Unity WebGL e Godot (SharedArrayBuffer)
 app.use('/games', (req, res, next) => {
     res.setHeader("Cross-Origin-Opener-Policy", "same-origin");

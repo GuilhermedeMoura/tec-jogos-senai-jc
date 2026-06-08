@@ -852,6 +852,45 @@ function updateAuthNavbar() {
 function setupAuthForms() {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
+    const forgotForm = document.getElementById('forgotForm');
+    
+    // Configura botões de transição para o painel Esqueci a Senha
+    const forgotBtn = document.getElementById('forgotPasswordBtn');
+    const backBtn = document.getElementById('backToLoginBtn');
+    const loginTabBtn = document.getElementById('login-tab');
+    const registerTabBtn = document.getElementById('register-tab');
+    
+    if (forgotBtn) {
+        forgotBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginTabContent').classList.remove('show', 'active');
+            document.getElementById('registerTabContent').classList.remove('show', 'active');
+            document.getElementById('forgotTabContent').classList.add('show', 'active');
+            if (forgotForm) forgotForm.reset();
+            const forgotStatus = document.getElementById('forgotStatus');
+            if (forgotStatus) forgotStatus.innerText = '';
+        });
+    }
+    
+    if (backBtn) {
+        backBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('forgotTabContent').classList.remove('show', 'active');
+            document.getElementById('loginTabContent').classList.add('show', 'active');
+        });
+    }
+    
+    if (loginTabBtn) {
+        loginTabBtn.addEventListener('click', () => {
+            document.getElementById('forgotTabContent').classList.remove('show', 'active');
+        });
+    }
+    
+    if (registerTabBtn) {
+        registerTabBtn.addEventListener('click', () => {
+            document.getElementById('forgotTabContent').classList.remove('show', 'active');
+        });
+    }
     
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -943,6 +982,45 @@ function setupAuthForms() {
             } catch (err) {
                 status.innerText = err.message;
                 status.className = "mt-2 text-center small text-danger";
+            }
+        });
+    }
+
+    if (forgotForm) {
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('authForgotEmail').value.trim().toLowerCase();
+            const status = document.getElementById('forgotStatus');
+            
+            if (!email.endsWith('@aluno.educa.go.gov.br')) {
+                status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
+                status.className = "mt-2 text-center small text-danger";
+                return;
+            }
+            
+            const submitBtn = forgotForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            status.innerText = "Processando...";
+            status.className = "mt-2 text-center small text-warning";
+            
+            try {
+                const response = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erro ao enviar solicitação.');
+                
+                status.innerText = data.message || "Link de redefinição enviado!";
+                status.className = "mt-2 text-center small text-success";
+                forgotForm.reset();
+            } catch (err) {
+                status.innerText = err.message;
+                status.className = "mt-2 text-center small text-danger";
+            } finally {
+                submitBtn.disabled = false;
             }
         });
     }

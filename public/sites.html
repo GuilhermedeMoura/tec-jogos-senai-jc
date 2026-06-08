@@ -296,8 +296,11 @@
                                     <input type="text" class="form-control form-control-clean" id="authLoginUser" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">Senha</label>
-                                    <input type="password" class="form-control form-control-clean" id="authLoginPass" required>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label text-secundary small mb-0">Senha</label>
+                                        <a href="#" class="small text-decoration-none text-muted" id="forgotPasswordBtn">Esqueci a senha</a>
+                                    </div>
+                                    <input type="password" class="form-control form-control-clean mt-1" id="authLoginPass" required>
                                 </div>
                                 <div class="d-grid mt-4">
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Entrar</button>
@@ -329,6 +332,24 @@
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Cadastrar</button>
                                 </div>
                                 <div id="registerStatus" class="mt-2 text-center small"></div>
+                            </form>
+                        </div>
+
+                        <div class="tab-pane fade" id="forgotTabContent" role="tabpanel">
+                            <h3 class="mb-3 fw-bold text-center">Recuperar Senha</h3>
+                            <p class="small text-white-50 text-center mb-4">Insira seu e-mail escolar cadastrado. Enviaremos as instruções de redefinição de senha.</p>
+                            <form id="forgotForm">
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">E-mail Escolar (@aluno.educa.go.gov.br)</label>
+                                    <input type="email" class="form-control form-control-clean" id="authForgotEmail" placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Enviar Instruções</button>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <a href="#" class="small text-decoration-none" id="backToLoginBtn" style="color: #f25424;">Voltar para o Login</a>
+                                </div>
+                                <div id="forgotStatus" class="mt-2 text-center small"></div>
                             </form>
                         </div>
                     </div>
