@@ -1491,7 +1491,7 @@ app.get('/api/games', async (req, res) => {
 // SITES ROUTES
 // ============================================================
 
-app.post('/upload-site', rateLimiter(50, 60 * 60 * 1000), uploadSite.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+app.post('/upload-site', rateLimiter(50, 60 * 60 * 1000), authenticateUser, uploadSite.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
     const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
     const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
 
@@ -1662,6 +1662,11 @@ app.post('/upload-site', rateLimiter(50, 60 * 60 * 1000), uploadSite.fields([{ n
             createdAt: new Date().toISOString()
         };
 
+        if (req.user) {
+            newSite.ownerId = req.user.userId;
+            newSite.ownerName = req.user.name;
+        }
+
         const docRef = await addDoc(collection(db, "sites"), newSite);
         console.log(`[Firestore] Site saved with docId: ${docRef.id}, siteId: ${siteId}`);
 
@@ -1671,6 +1676,194 @@ app.post('/upload-site', rateLimiter(50, 60 * 60 * 1000), uploadSite.fields([{ n
         if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
         console.error('[Error] Site upload failed:', error);
         res.status(500).json({ error: 'Erro ao processar o site: ' + error.message });
+    }
+});
+
+// Atualizar / Sobrescrever Site
+app.post('/api/sites/:siteId/update', rateLimiter(15, 60 * 1000), authenticateUser, requireAuth, uploadSite.fields([{ name: 'gameFile', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), async (req, res) => {
+    const siteId = req.params.siteId;
+    const file = req.files && req.files['gameFile'] ? req.files['gameFile'][0] : null;
+    const coverFile = req.files && req.files['coverImage'] ? req.files['coverImage'][0] : null;
+
+    try {
+        // Find document in Firestore
+        const q = query(collection(db, "sites"));
+        const snapshot = await getDocs(q);
+        let targetDocId = null;
+        let siteData = null;
+        
+        snapshot.forEach((docSnap) => {
+            if (docSnap.id === siteId || String(docSnap.data().id) === String(siteId)) {
+                targetDocId = docSnap.id;
+                siteData = docSnap.data();
+            }
+        });
+        
+        if (!targetDocId) {
+            if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(404).json({ error: 'Site não encontrado' });
+        }
+        
+        // Authorization check: User must be owner
+        if (siteData.ownerId !== req.user.userId) {
+            if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(403).json({ error: 'Você não tem permissão para editar este site.' });
+        }
+
+        // Sanitize input
+        const gameTitle = sanitizeInput(req.body.gameTitle, 50);
+        const gameCategory = sanitizeInput(req.body.gameCategory, 30);
+        const city = sanitizeInput(req.body.city, 30);
+        const school = sanitizeInput(req.body.school, 100);
+        const studentClass = sanitizeInput(req.body.studentClass, 100);
+        const teacher = sanitizeInput(req.body.teacher, 30);
+        
+        if (!gameTitle || !gameCategory || !city || !school || !studentClass || !teacher) {
+            if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+            if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            return res.status(400).json({ error: 'Campos obrigatórios vazios.' });
+        }
+
+        const updates = {
+            title: gameTitle,
+            category: gameCategory,
+            city: city || null,
+            school: school || null,
+            studentClass: studentClass || null,
+            teacher: teacher || null,
+        };
+
+        const localSitePath = path.join(SITES_FOLDER, siteId);
+        let storageFileRef = ref(storage, `sites/${siteId}.zip`);
+
+        // Handle replacement of ZIP/HTML file
+        if (file) {
+            // Validate extension and size
+            const gameExt = path.extname(file.originalname).toLowerCase();
+            if (!['.zip', '.html'].includes(gameExt)) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+                if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'Arquivo inválido. Formatos permitidos: .zip, .html' });
+            }
+
+            if (gameExt === '.html') {
+                if (file.size > 5 * 1024 * 1024) {
+                    try { fs.unlinkSync(file.path); } catch (_) {}
+                    if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                    return res.status(400).json({ error: 'Arquivos HTML individuais não devem exceder 5 MB.' });
+                }
+            } else if (gameExt === '.zip') {
+                if (file.size > 50 * 1024 * 1024) {
+                    try { fs.unlinkSync(file.path); } catch (_) {}
+                    if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                    return res.status(400).json({ error: 'O arquivo ZIP do site não deve exceder 50 MB.' });
+                }
+                try {
+                    validateZipArchive(file.path, 80 * 1024 * 1024, 1000);
+                } catch (zipErr) {
+                    try { fs.unlinkSync(file.path); } catch (_) {}
+                    if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                    return res.status(400).json({ error: `ZIP inválido: ${zipErr.message}` });
+                }
+            }
+
+            // Clean old local extraction cache folder to write fresh files
+            if (fs.existsSync(localSitePath)) {
+                try { fs.rmSync(localSitePath, { recursive: true, force: true }); } catch (_) {}
+            }
+            try { fs.mkdirSync(localSitePath, { recursive: true }); } catch (_) {}
+
+            let indexHtmlPath = null;
+            let indexInfo = null;
+
+            if (file.originalname.toLowerCase().endsWith('.zip')) {
+                const zip = new AdmZip(file.path);
+                zip.extractAllTo(localSitePath, true);
+                indexInfo = findIndexHtml(localSitePath);
+                if (indexInfo) indexHtmlPath = indexInfo.dirPath;
+
+                const fileBuffer = fs.readFileSync(file.path);
+                await uploadBytes(storageFileRef, fileBuffer, { contentType: 'application/zip' });
+            } else if (file.originalname.toLowerCase().endsWith('.html')) {
+                fs.copyFileSync(file.path, path.join(localSitePath, 'index.html'));
+                indexHtmlPath = localSitePath;
+                const zipOut = new AdmZip();
+                zipOut.addLocalFile(file.path);
+                const outBuffer = zipOut.toBuffer();
+                await uploadBytes(storageFileRef, outBuffer, { contentType: 'application/zip' });
+            }
+
+            try { fs.unlinkSync(file.path); } catch (_) {}
+
+            if (!indexHtmlPath || !fs.existsSync(path.join(localSitePath, 'index.html'))) {
+                return res.status(400).json({ error: 'Nenhum ponto de entrada encontrado (index.html).' });
+            }
+
+            reorganizeGameFiles(localSitePath, indexHtmlPath);
+            if (indexInfo && indexInfo.fileName !== 'index.html') {
+                const originalHtml = path.join(localSitePath, indexInfo.fileName);
+                const targetHtml = path.join(localSitePath, 'index.html');
+                if (fs.existsSync(originalHtml)) fs.renameSync(originalHtml, targetHtml);
+            }
+            convertAbsolutePathsToRelative(localSitePath);
+            console.log(`[Update] Replaced site file for ${siteId}.`);
+        }
+
+        // Handle replacement of Cover Image
+        if (coverFile) {
+            const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const ext = path.extname(coverFile.originalname).toLowerCase();
+            const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+            if (!allowedMimes.includes(coverFile.mimetype) || !allowedExts.includes(ext)) {
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa deve ser um formato válido.' });
+            }
+            if (coverFile.size > 5 * 1024 * 1024) {
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+                return res.status(400).json({ error: 'A imagem de capa não deve exceder 5 MB.' });
+            }
+
+            try {
+                // Delete previous cover if exists from firebase storage
+                if (siteData.coverUrl) {
+                    try {
+                        const parsedUrl = new URL(siteData.coverUrl);
+                        const oldCoverPath = decodeURIComponent(parsedUrl.pathname.split('/o/')[1].split('?')[0]);
+                        const oldCoverRef = ref(storage, oldCoverPath);
+                        await deleteObject(oldCoverRef);
+                    } catch (delCoverErr) {
+                        console.warn('[Update] Could not delete old site cover (non-critical):', delCoverErr.message);
+                    }
+                }
+                
+                const coverExt = path.extname(coverFile.originalname) || '.jpg';
+                const coverStorageRef = ref(storage, `covers/sites/${siteId}${coverExt}`);
+                const coverBuffer = fs.readFileSync(coverFile.path);
+                const coverMime = coverFile.mimetype || 'image/jpeg';
+                await uploadBytes(coverStorageRef, coverBuffer, { contentType: coverMime });
+                const coverUrl = await getDownloadURL(coverStorageRef);
+                updates.coverUrl = coverUrl;
+                console.log(`[Update] Cover image replaced for site ${siteId}: ${coverUrl}`);
+            } catch (coverErr) {
+                console.error('[Update Error] Site cover upload failed:', coverErr.message);
+            } finally {
+                try { fs.unlinkSync(coverFile.path); } catch (_) {}
+            }
+        }
+
+        // Update Firestore document
+        await updateDoc(doc(db, "sites", targetDocId), updates);
+        console.log(`[Update] Site ${siteId} successfully updated in Firestore.`);
+
+        res.json({ message: 'Site atualizado com sucesso!', site: { ...siteData, ...updates } });
+
+    } catch (error) {
+        if (file) try { fs.unlinkSync(file.path); } catch (_) {}
+        if (coverFile) try { fs.unlinkSync(coverFile.path); } catch (_) {}
+        console.error('[Update Error] Failed to update site:', error);
+        res.status(500).json({ error: 'Erro ao atualizar o site: ' + error.message });
     }
 });
 

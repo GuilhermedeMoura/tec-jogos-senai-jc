@@ -26,6 +26,11 @@
                 <a href="/" class="nav-link text-light opacity-75"><i class="bi bi-joystick me-1"></i>Jogos</a>
                 <a href="/sites.html" class="nav-link text-light fw-semibold"><i
                         class="bi bi-code-slash me-1"></i>Sites</a>
+                <div id="authNavContainer" class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#authModal" id="navLoginBtn">
+                        <i class="bi bi-person-fill me-1"></i> Entrar
+                    </button>
+                </div>
                 <button class="btn btn-modern-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-upload"></i> Enviar Site
                 </button>
@@ -265,6 +270,183 @@
             </div>
         </div>
     </div>
+    
+    <!-- Modal de Autenticação (Login / Cadastro) -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-clean">
+                <div class="modal-body p-5">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4" data-bs-dismiss="modal"></button>
+                    
+                    <ul class="nav nav-pills nav-justified mb-4" id="authTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginTabContent" type="button" role="tab">Entrar</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="pill" data-bs-target="#registerTabContent" type="button" role="tab">Cadastrar</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="authTabsContent">
+                        <div class="tab-pane fade show active" id="loginTabContent" role="tabpanel">
+                            <h3 class="mb-3 fw-bold text-center">Login do Aluno</h3>
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Usuário</label>
+                                    <input type="text" class="form-control form-control-clean" id="authLoginUser" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Senha</label>
+                                    <input type="password" class="form-control form-control-clean" id="authLoginPass" required>
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Entrar</button>
+                                </div>
+                                <div id="loginStatus" class="mt-2 text-center small text-danger"></div>
+                            </form>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="registerTabContent" role="tabpanel">
+                            <h3 class="mb-3 fw-bold text-center">Nova Conta</h3>
+                            <form id="registerForm">
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Nome Completo</label>
+                                    <input type="text" class="form-control form-control-clean" id="authRegName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">E-mail Escolar (@aluno.educa.go.gov.br)</label>
+                                    <input type="email" class="form-control form-control-clean" id="authRegEmail" placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Usuário (Apelido)</label>
+                                    <input type="text" class="form-control form-control-clean" id="authRegUser" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Senha (mínimo 6 chars)</label>
+                                    <input type="password" class="form-control form-control-clean" id="authRegPass" required minlength="6">
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Cadastrar</button>
+                                </div>
+                                <div id="registerStatus" class="mt-2 text-center small"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Site -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-clean">
+                <div class="modal-body p-5">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4"
+                        data-bs-dismiss="modal"></button>
+                    <div class="row">
+                        <div class="col-md-5 d-flex align-items-center justify-content-center bg-modal-side rounded-start">
+                            <div class="text-center">
+                                <i class="bi bi-pencil-square display-3 text-gradient mb-3"></i>
+                                <h5>Editar Site</h5>
+                                <p class="small text-white-50">Atualize as informações ou substitua os arquivos.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-7 p-4">
+                            <h3 class="mb-4 fw-bold">Atualizar Site</h3>
+                            <form id="editGameForm" enctype="multipart/form-data" novalidate>
+                                <input type="hidden" id="editGameId">
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Nome do Projeto</label>
+                                    <input type="text" name="gameTitle" class="form-control form-control-clean"
+                                        id="editGameTitle" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Categoria</label>
+                                    <select name="gameCategory" class="form-select form-control-clean"
+                                        id="editGameCategory">
+                                        <option value="Portfolio">Portfolio</option>
+                                        <option value="Landing Page">Landing Page</option>
+                                        <option value="Dashboard">Dashboard</option>
+                                        <option value="E-commerce">E-commerce</option>
+                                        <option value="Blog">Blog</option>
+                                        <option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Cidade</label>
+                                    <select class="form-select form-control-clean" id="editCitySelect" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Goiania">Goiânia</option>
+                                        <option value="Trindade">Trindade</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Escola</label>
+                                    <select class="form-select form-control-clean" id="editSchoolSelect" required>
+                                        <option value="">Selecione a cidade primeiro</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Turma</label>
+                                    <select class="form-select form-control-clean" id="editClassSelect" required>
+                                        <option value="">Selecione a escola primeiro</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">Professor</label>
+                                    <select class="form-select form-control-clean" id="editTeacherSelect" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Heberson">Heberson</option>
+                                        <option value="Guilherme">Guilherme</option>
+                                        <option value="Francisco">Francisco</option>
+                                        <option value="Patrícia">Patrícia</option>
+                                        <option value="Agenor">Agenor</option>
+                                        <option value="Cleusa">Cleusa</option>
+                                        <option value="Victor">Victor</option>
+                                        <option value="Daniel">Daniel</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-secundary small">
+                                        Substituir Arquivo do Site
+                                        <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Opcional</span>
+                                    </label>
+                                    <input type="file" name="gameFile" class="form-control form-control-clean"
+                                        id="editGameFile" accept=".zip,.html">
+                                    <div class="mt-1" style="font-size:.72rem;opacity:.55;">
+                                        Deixe vazio para manter a versão atual do arquivo.
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label text-secundary small">
+                                        Substituir Imagem de Capa
+                                        <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Opcional</span>
+                                    </label>
+                                    <input type="file" name="coverImage" class="form-control form-control-clean"
+                                        id="editCoverImage" accept="image/*">
+                                    <div class="mt-1" style="font-size:.72rem;opacity:.55;">
+                                        Deixe vazio para manter a imagem de capa atual.
+                                    </div>
+                                    <div id="editCoverPreviewWrapper" class="mt-2 d-none">
+                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="editCoverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Salvar Alterações</button>
+                                </div>
+                                <div id="editStatus" class="mt-2 text-center small"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Visualizar Site -->
     <div class="modal fade" id="playModal" tabindex="-1" aria-hidden="true">
@@ -419,8 +601,15 @@
                 formData.append('gameFile', gameFile);
                 if (coverFile) formData.append('coverImage', coverFile);
 
+                const token = localStorage.getItem('student_token');
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
                 const response = await fetch('/upload-site', {
                     method: 'POST',
+                    headers: headers,
                     body: formData
                 });
 
@@ -598,6 +787,14 @@
             const ratingCount = site.ratingCount || 0;
             const isRated = localStorage.getItem('rated-site-' + uniqueId) !== null;
             
+            const currentUser = JSON.parse(localStorage.getItem('student_user') || 'null');
+            const isOwner = currentUser && site.ownerId === currentUser.id;
+            const editBtnHtml = isOwner ? `
+                <button class="btn btn-edit-game-card btn-edit-game" title="Editar site" data-site-id="${uniqueId}">
+                    <i class="bi bi-pencil-fill"></i>
+                </button>
+            ` : '';
+            
             let starsHtml = '';
             for (let i = 1; i <= 5; i++) {
                 const starClass = i <= Math.round(avgRating) ? 'bi-star-fill active-star' : 'bi-star';
@@ -617,6 +814,7 @@
                          data-year="${site.studentClass || ''}"
                          style="cursor: pointer;">
                         <div class="game-img-wrapper">
+                            ${editBtnHtml}
                             <img src="${site.coverUrl || `https://source.unsplash.com/600x400/?website,code`}"
                                  class="game-img" alt="${site.title}"
                                  onerror="this.src='https://via.placeholder.com/600x400?text=${encodeURIComponent(site.title)}'">
@@ -761,8 +959,16 @@
             paginationContainer.appendChild(nextBtn);
         }
 
-        // ---- ABRIR SITE NO MODAL ----
+        // ---- ABRIR SITE NO MODAL / EDITAR SITE ----
         gamesContainer.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.btn-edit-game');
+            if (editBtn) {
+                e.stopPropagation();
+                const siteId = editBtn.dataset.siteId;
+                openEditModal(siteId);
+                return;
+            }
+
             const playBtn = e.target.closest('[class*="btn-play"]');
             if (playBtn) {
                 const card = playBtn.closest('[data-site-id]');
@@ -1016,8 +1222,324 @@
             }
         });
 
+        // ---- CLIENT AUTHENTICATION AND LOGGED-IN ACTIONS LOGIC ----
+
+        function updateAuthNavbar() {
+            const container = document.getElementById('authNavContainer');
+            if (!container) return;
+            
+            const token = localStorage.getItem('student_token');
+            const user = JSON.parse(localStorage.getItem('student_user') || 'null');
+            
+            if (token && user) {
+                container.innerHTML = `
+                    <span class="text-white-50 small me-1"><i class="bi bi-person-circle"></i> Olá, ${user.name}</span>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3" id="navLogoutBtn">Sair</button>
+                `;
+                document.getElementById('navLogoutBtn').addEventListener('click', () => {
+                    localStorage.removeItem('student_token');
+                    localStorage.removeItem('student_user');
+                    updateAuthNavbar();
+                    loadSites();
+                });
+            } else {
+                container.innerHTML = `
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#authModal" id="navLoginBtn">
+                        <i class="bi bi-person-fill me-1"></i> Entrar
+                    </button>
+                `;
+            }
+        }
+
+        function setupAuthForms() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('authLoginUser').value.trim();
+                    const password = document.getElementById('authLoginPass').value;
+                    const status = document.getElementById('loginStatus');
+                    
+                    status.innerText = "Entrando...";
+                    status.className = "mt-2 text-center small text-warning";
+                    
+                    try {
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username, password })
+                        });
+                        
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Erro ao fazer login.');
+                        
+                        localStorage.setItem('student_token', data.token);
+                        localStorage.setItem('student_user', JSON.stringify(data.user));
+                        
+                        status.innerText = "Login realizado com sucesso!";
+                        status.className = "mt-2 text-center small text-success";
+                        
+                        loginForm.reset();
+                        
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                            if (modal) modal.hide();
+                            status.innerText = "";
+                            updateAuthNavbar();
+                            loadSites();
+                        }, 1000);
+                        
+                    } catch (err) {
+                        status.innerText = err.message;
+                        status.className = "mt-2 text-center small text-danger";
+                    }
+                });
+            }
+            
+            if (registerForm) {
+                registerForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('authRegName').value.trim();
+                    const email = document.getElementById('authRegEmail').value.trim().toLowerCase();
+                    const username = document.getElementById('authRegUser').value.trim();
+                    const password = document.getElementById('authRegPass').value;
+                    const status = document.getElementById('registerStatus');
+                    
+                    if (!email.endsWith('@aluno.educa.go.gov.br')) {
+                        status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
+                        status.className = "mt-2 text-center small text-danger";
+                        return;
+                    }
+
+                    status.innerText = "Criando conta...";
+                    status.className = "mt-2 text-center small text-warning";
+                    
+                    try {
+                        const response = await fetch('/api/auth/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name, email, username, password })
+                        });
+                        
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Erro ao registrar.');
+                        
+                        localStorage.setItem('student_token', data.token);
+                        localStorage.setItem('student_user', JSON.stringify(data.user));
+                        
+                        status.innerText = "Conta criada com sucesso!";
+                        status.className = "mt-2 text-center small text-success";
+                        
+                        registerForm.reset();
+                        
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                            if (modal) modal.hide();
+                            status.innerText = "";
+                            updateAuthNavbar();
+                            loadSites();
+                        }, 1000);
+                        
+                    } catch (err) {
+                        status.innerText = err.message;
+                        status.className = "mt-2 text-center small text-danger";
+                    }
+                });
+            }
+        }
+
+        function populateEditSchools(city, selectedSchool = '') {
+            const schoolSelect = document.getElementById('editSchoolSelect');
+            schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
+            
+            if (city && schoolsData[city]) {
+                schoolSelect.innerHTML = '<option value="">Selecione...</option>';
+                schoolsData[city].forEach(school => {
+                    const opt = document.createElement('option');
+                    opt.value = school;
+                    opt.textContent = school;
+                    if (school === selectedSchool) opt.selected = true;
+                    schoolSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function populateEditClasses(school, selectedClass = '') {
+            const classSelect = document.getElementById('editClassSelect');
+            classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+            
+            if (school) {
+                classSelect.innerHTML = `
+                <option value="">Selecione...</option>
+                <option value="1° Ano Técnico em Programação de Jogos Digitais">1° Ano Técnico em Programação de Jogos Digitais</option>
+                <option value="1° Ano Técnico em Desenvolvimento de Sistemas">1° Ano Técnico em Desenvolvimento de Sistemas</option>
+                <option value="2° Ano Técnico em Programação de Jogos Digitais">2° Ano Técnico em Programação de Jogos Digitais</option>
+                <option value="2° Ano Técnico em Desenvolvimento de Sistemas">2° Ano Técnico em Desenvolvimento de Sistemas</option>
+                `;
+                if (selectedClass) classSelect.value = selectedClass;
+            }
+        }
+
+        function openEditModal(siteId) {
+            const site = allSites.find(g => (g.docId || g.id) === siteId);
+            if (!site) return;
+            
+            document.getElementById('editGameId').value = siteId;
+            document.getElementById('editGameTitle').value = site.title || '';
+            document.getElementById('editGameCategory').value = site.category || 'Portfolio';
+            
+            const citySelect = document.getElementById('editCitySelect');
+            const schoolSelect = document.getElementById('editSchoolSelect');
+            const classSelect = document.getElementById('editClassSelect');
+            const teacherSelect = document.getElementById('editTeacherSelect');
+            
+            citySelect.value = site.city || '';
+            
+            populateEditSchools(site.city, site.school);
+            populateEditClasses(site.school, site.studentClass);
+            
+            teacherSelect.value = site.teacher || '';
+            
+            // Limpa campos de arquivo
+            document.getElementById('editGameFile').value = '';
+            document.getElementById('editCoverImage').value = '';
+            
+            const previewWrapper = document.getElementById('editCoverPreviewWrapper');
+            const previewImg = document.getElementById('editCoverPreview');
+            if (site.coverUrl) {
+                previewImg.src = site.coverUrl;
+                previewWrapper.classList.remove('d-none');
+            } else {
+                previewImg.src = '';
+                previewWrapper.classList.add('d-none');
+            }
+            
+            document.getElementById('editStatus').innerText = '';
+            
+            const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+            editModal.show();
+        }
+
+        function setupEditForm() {
+            const citySelect = document.getElementById('editCitySelect');
+            const schoolSelect = document.getElementById('editSchoolSelect');
+            const classSelect = document.getElementById('editClassSelect');
+            
+            if (citySelect && schoolSelect && classSelect) {
+                citySelect.addEventListener('change', () => {
+                    populateEditSchools(citySelect.value);
+                    classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
+                });
+                
+                schoolSelect.addEventListener('change', () => {
+                    populateEditClasses(schoolSelect.value);
+                });
+            }
+            
+            const coverInput = document.getElementById('editCoverImage');
+            const previewWrapper = document.getElementById('editCoverPreviewWrapper');
+            const previewImg = document.getElementById('editCoverPreview');
+            
+            if (coverInput) {
+                coverInput.addEventListener('change', () => {
+                    const file = coverInput.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            previewImg.src = e.target.result;
+                            previewWrapper.classList.remove('d-none');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            const editGameForm = document.getElementById('editGameForm');
+            if (editGameForm) {
+                editGameForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const submitBtn = editGameForm.querySelector('button[type="submit"]');
+                    const status = document.getElementById('editStatus');
+                    
+                    status.innerText = "Salvando alterações...";
+                    status.className = "mt-2 text-center small text-warning";
+                    submitBtn.disabled = true;
+                    
+                    const siteId = document.getElementById('editGameId').value;
+                    const gameTitle = document.getElementById('editGameTitle').value.trim();
+                    const gameCategory = document.getElementById('editGameCategory').value;
+                    const city = document.getElementById('editCitySelect').value;
+                    const school = document.getElementById('editSchoolSelect').value;
+                    const studentClass = document.getElementById('editClassSelect').value;
+                    const teacher = document.getElementById('editTeacherSelect').value;
+                    
+                    const gameFile = document.getElementById('editGameFile').files[0] || null;
+                    const coverFile = document.getElementById('editCoverImage').files[0] || null;
+                    
+                    if (!gameTitle || !gameCategory || !city || !school || !studentClass || !teacher) {
+                        status.innerText = "Preencha todos os campos obrigatórios.";
+                        status.className = "mt-2 text-center small text-danger";
+                        submitBtn.disabled = false;
+                        return;
+                    }
+                    
+                    const formData = new FormData();
+                    formData.append('gameTitle', gameTitle);
+                    formData.append('gameCategory', gameCategory);
+                    formData.append('city', city);
+                    formData.append('school', school);
+                    formData.append('studentClass', studentClass);
+                    formData.append('teacher', teacher);
+                    
+                    if (gameFile) formData.append('gameFile', gameFile);
+                    if (coverFile) formData.append('coverImage', coverFile);
+                    
+                    const token = localStorage.getItem('student_token');
+                    const headers = {};
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    
+                    try {
+                        const response = await fetch(`/api/sites/${siteId}/update`, {
+                            method: 'POST',
+                            headers: headers,
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Erro ao atualizar o site.');
+                        
+                        status.innerText = "Site atualizado com sucesso!";
+                        status.className = "mt-2 text-center small text-success";
+                        
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                            if (modal) modal.hide();
+                            status.innerText = "";
+                            loadSites();
+                        }, 1500);
+                        
+                    } catch (err) {
+                        status.innerText = err.message;
+                        status.className = "mt-2 text-center small text-danger";
+                    } finally {
+                        submitBtn.disabled = false;
+                    }
+                });
+            }
+        }
+
         // ---- INICIALIZAR ----
-        document.addEventListener('DOMContentLoaded', loadSites);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSites();
+            updateAuthNavbar();
+            setupAuthForms();
+            setupEditForm();
+        });
     </script>
 </body>
 
