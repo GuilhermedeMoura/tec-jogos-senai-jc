@@ -27,7 +27,8 @@
                 <a href="/sites.html" class="nav-link text-light fw-semibold"><i
                         class="bi bi-code-slash me-1"></i>Sites</a>
                 <div id="authNavContainer" class="d-flex align-items-center gap-2">
-                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#authModal" id="navLoginBtn">
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal"
+                        data-bs-target="#authModal" id="navLoginBtn">
                         <i class="bi bi-person-fill me-1"></i> Entrar
                     </button>
                 </div>
@@ -55,7 +56,8 @@
                     <div class="premium-carousel-wrapper position-relative">
                         <!-- Glowing blob background behind the carousel -->
                         <div class="carousel-glow-shape"></div>
-                        <div id="topWeeklyCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+                        <div id="topWeeklyCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel"
+                            data-bs-interval="5000">
                             <div class="carousel-indicators" id="carouselIndicators"></div>
                             <div class="carousel-inner" id="carouselInner">
                                 <div class="carousel-item active">
@@ -82,7 +84,8 @@
             <div class="row g-3">
                 <!-- Pesquisa por Aluno -->
                 <div class="col-md-4">
-                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno ou Professor</label>
+                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno ou
+                        Professor</label>
                     <input type="text" id="searchInput" class="form-control form-control-clean"
                         placeholder="Digite o nome do aluno, site ou professor...">
                 </div>
@@ -270,20 +273,23 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Modal de Autenticação (Login / Cadastro) -->
     <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-clean">
                 <div class="modal-body p-5">
-                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4" data-bs-dismiss="modal"></button>
-                    
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4"
+                        data-bs-dismiss="modal"></button>
+
                     <ul class="nav nav-pills nav-justified mb-4" id="authTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginTabContent" type="button" role="tab">Entrar</button>
+                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="pill"
+                                data-bs-target="#loginTabContent" type="button" role="tab">Entrar</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="pill" data-bs-target="#registerTabContent" type="button" role="tab">Cadastrar</button>
+                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="pill"
+                                data-bs-target="#registerTabContent" type="button" role="tab">Cadastrar</button>
                         </li>
                     </ul>
 
@@ -293,14 +299,18 @@
                             <form id="loginForm">
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Usuário</label>
-                                    <input type="text" class="form-control form-control-clean" id="authLoginUser" required>
+                                    <input type="text" class="form-control form-control-clean" id="authLoginUser"
+                                        required>
                                 </div>
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <label class="form-label text-secundary small mb-0">Senha</label>
-                                        <a href="#" class="small text-decoration-none" id="forgotPasswordBtn" style="color: #f25424;">Esqueci a senha</a>
                                     </div>
-                                    <input type="password" class="form-control form-control-clean mt-1" id="authLoginPass" required>
+                                    <input type="password" class="form-control form-control-clean mt-1"
+                                        id="authLoginPass" required>
+                                    <a href="/forgot-password.html" class="small text-decoration-none"
+                                        id="forgotPasswordBtn" style="color: #f25424;">Esqueci a senha</a>
+
                                 </div>
                                 <div class="d-grid mt-4">
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Entrar</button>
@@ -308,25 +318,30 @@
                                 <div id="loginStatus" class="mt-2 text-center small text-danger"></div>
                             </form>
                         </div>
-                        
+
                         <div class="tab-pane fade" id="registerTabContent" role="tabpanel">
                             <h3 class="mb-3 fw-bold text-center">Nova Conta</h3>
                             <form id="registerForm">
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Nome Completo</label>
-                                    <input type="text" class="form-control form-control-clean" id="authRegName" required>
+                                    <input type="text" class="form-control form-control-clean" id="authRegName"
+                                        required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">E-mail Escolar (@aluno.educa.go.gov.br)</label>
-                                    <input type="email" class="form-control form-control-clean" id="authRegEmail" placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                    <label class="form-label text-secundary small">E-mail Escolar
+                                        (@aluno.educa.go.gov.br)</label>
+                                    <input type="email" class="form-control form-control-clean" id="authRegEmail"
+                                        placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Usuário (Apelido)</label>
-                                    <input type="text" class="form-control form-control-clean" id="authRegUser" required>
+                                    <input type="text" class="form-control form-control-clean" id="authRegUser"
+                                        required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Senha (mínimo 6 chars)</label>
-                                    <input type="password" class="form-control form-control-clean" id="authRegPass" required minlength="6">
+                                    <input type="password" class="form-control form-control-clean" id="authRegPass"
+                                        required minlength="6">
                                 </div>
                                 <div class="d-grid mt-4">
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Cadastrar</button>
@@ -337,17 +352,22 @@
 
                         <div class="tab-pane fade" id="forgotTabContent" role="tabpanel">
                             <h3 class="mb-3 fw-bold text-center">Recuperar Senha</h3>
-                            <p class="small text-white-50 text-center mb-4">Insira seu e-mail escolar cadastrado. Enviaremos as instruções de redefinição de senha.</p>
+                            <p class="small text-white-50 text-center mb-4">Insira seu e-mail escolar cadastrado.
+                                Enviaremos as instruções de redefinição de senha.</p>
                             <form id="forgotForm">
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">E-mail Escolar (@aluno.educa.go.gov.br)</label>
-                                    <input type="email" class="form-control form-control-clean" id="authForgotEmail" placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                    <label class="form-label text-secundary small">E-mail Escolar
+                                        (@aluno.educa.go.gov.br)</label>
+                                    <input type="email" class="form-control form-control-clean" id="authForgotEmail"
+                                        placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
                                 </div>
                                 <div class="d-grid mt-4">
-                                    <button type="submit" class="btn btn-modern-primary btn-lg">Enviar Instruções</button>
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Enviar
+                                        Instruções</button>
                                 </div>
                                 <div class="text-center mt-3">
-                                    <a href="#" class="small text-decoration-none" id="backToLoginBtn" style="color: #f25424;">Voltar para o Login</a>
+                                    <a href="#" class="small text-decoration-none" id="backToLoginBtn"
+                                        style="color: #f25424;">Voltar para o Login</a>
                                 </div>
                                 <div id="forgotStatus" class="mt-2 text-center small"></div>
                             </form>
@@ -366,7 +386,8 @@
                     <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4"
                         data-bs-dismiss="modal"></button>
                     <div class="row">
-                        <div class="col-md-5 d-flex align-items-center justify-content-center bg-modal-side rounded-start">
+                        <div
+                            class="col-md-5 d-flex align-items-center justify-content-center bg-modal-side rounded-start">
                             <div class="text-center">
                                 <i class="bi bi-pencil-square display-3 text-gradient mb-3"></i>
                                 <h5>Editar Site</h5>
@@ -428,7 +449,7 @@
                                         <option value="Daniel">Daniel</option>
                                     </select>
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">
                                         Substituir Arquivo do Site
@@ -452,13 +473,16 @@
                                         Deixe vazio para manter a imagem de capa atual.
                                     </div>
                                     <div id="editCoverPreviewWrapper" class="mt-2 d-none">
-                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
-                                            <img id="editCoverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                        <div
+                                            style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="editCoverPreview" src="" alt="Preview"
+                                                style="width:100%; height:120px; object-fit:cover; display:block;">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="d-grid">
-                                    <button type="submit" class="btn btn-modern-primary btn-lg">Salvar Alterações</button>
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Salvar
+                                        Alterações</button>
                                 </div>
                                 <div id="editStatus" class="mt-2 text-center small"></div>
                             </form>
@@ -706,16 +730,16 @@
         function populateTopWeeklyCarousel(sites) {
             const carouselInner = document.getElementById('carouselInner');
             const carouselIndicators = document.getElementById('carouselIndicators');
-            
+
             if (!carouselInner || !carouselIndicators) return;
-            
+
             carouselInner.innerHTML = '';
             carouselIndicators.innerHTML = '';
-            
+
             const topSites = [...sites]
                 .sort((a, b) => (b.views || 0) - (a.views || 0))
                 .slice(0, 5);
-                
+
             if (topSites.length === 0) {
                 carouselInner.innerHTML = `
                     <div class="carousel-item active">
@@ -727,12 +751,12 @@
                 `;
                 return;
             }
-            
+
             topSites.forEach((site, index) => {
                 const uniqueId = site.docId || site.id;
                 const avgRating = site.averageRating || 0;
                 const coverImg = site.coverUrl || `https://via.placeholder.com/600x400?text=${encodeURIComponent(site.title)}`;
-                
+
                 // Indicator
                 const indicator = document.createElement('button');
                 indicator.type = 'button';
@@ -744,11 +768,11 @@
                 }
                 indicator.ariaLabel = `Slide ${index + 1}`;
                 carouselIndicators.appendChild(indicator);
-                
+
                 // Slide item
                 const item = document.createElement('div');
                 item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
-                
+
                 item.innerHTML = `
                     <div class="premium-carousel-card" style="background-image: linear-gradient(135deg, rgba(19, 20, 26, 0.95) 45%, rgba(19, 20, 26, 0.35) 100%), url('${coverImg}'); cursor: pointer;" onclick="openSite('${site.url}', '${site.title.replace(/'/g, "\\'")}')">
                         <div class="top-rank-badge" style="background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%); box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);">
@@ -809,7 +833,7 @@
             const avgRating = site.averageRating || 0;
             const ratingCount = site.ratingCount || 0;
             const isRated = localStorage.getItem('rated-site-' + uniqueId) !== null;
-            
+
             const currentUser = JSON.parse(localStorage.getItem('student_user') || 'null');
             const isOwner = currentUser && site.ownerId === currentUser.id;
             const editBtnHtml = isOwner ? `
@@ -817,7 +841,7 @@
                     <i class="bi bi-pencil-fill"></i>
                 </button>
             ` : '';
-            
+
             let starsHtml = '';
             for (let i = 1; i <= 5; i++) {
                 const starClass = i <= Math.round(avgRating) ? 'bi-star-fill active-star' : 'bi-star';
@@ -888,7 +912,7 @@
         // ---- EXIBIR SITES NA TELA ----
         function displaySites(page) {
             gamesContainer.innerHTML = '';
-            
+
             if (filteredSites.length === 0) {
                 if (allSites.length > 0) {
                     emptyState.classList.add('d-none');
@@ -906,7 +930,7 @@
 
             const start = (page - 1) * itemsPerPage;
             const end = Math.min(start + itemsPerPage, filteredSites.length);
-            
+
             const paginatedItems = filteredSites.slice(start, end);
             const html = paginatedItems.map(getSiteCardHtml).join('');
             gamesContainer.innerHTML = html;
@@ -915,7 +939,7 @@
         // ---- RENDERIZAR PAGINAÇÃO ----
         function renderPagination() {
             paginationContainer.innerHTML = '';
-            
+
             const totalPages = Math.ceil(filteredSites.length / itemsPerPage);
             if (totalPages <= 1) return;
 
@@ -1071,7 +1095,7 @@
 
                 // Filtro de pesquisa (Aluno, Título ou Professor)
                 let matchSearch = !searchTerm || author.includes(searchTerm) || title.includes(searchTerm) || teacher.includes(searchTerm);
-                
+
                 // Filtros exatos
                 let matchCity = !cityValue || city === cityValue;
                 let matchSchool = !schoolValue || school === schoolValue;
@@ -1111,7 +1135,7 @@
             const starContainer = e.target.closest('.star-rating');
             if (starContainer && !starContainer.classList.contains('rated')) {
                 const stars = starContainer.querySelectorAll('i');
-                
+
                 // Se já tiver uma nota pré-selecionada pelo clique, restaura nela. Caso contrário, restaura na média atual.
                 const selectedRating = parseInt(starContainer.dataset.selectedRating || '0');
                 const avg = parseFloat(starContainer.dataset.currentAvg || '0');
@@ -1194,17 +1218,17 @@
                     }
 
                     const result = await response.json();
-                    
+
                     // Persistir no localStorage local
                     localStorage.setItem(`rated-site-${projectId}`, 'true');
-                    
+
                     // Marcar como avaliado e travar estrelas
                     starContainer.classList.add('rated');
                     starContainer.dataset.currentAvg = result.averageRating;
-                    
+
                     // Ocultar o botão Enviar
                     submitBtn.classList.add('d-none');
-                    
+
                     // Fixar a avaliação visualmente
                     const stars = starContainer.querySelectorAll('i');
                     stars.forEach((s, idx) => {
@@ -1227,7 +1251,7 @@
                     }
 
                     console.log(`[Rating Success] Registered ${selectedRating} stars for site ${projectId}`);
-                    
+
                     // Atualiza a lista interna para sincronizar o carrossel no topo em paralelo
                     const siteObj = allSites.find(p => (p.docId || p.id) === projectId);
                     if (siteObj) {
@@ -1250,10 +1274,10 @@
         function updateAuthNavbar() {
             const container = document.getElementById('authNavContainer');
             if (!container) return;
-            
+
             const token = localStorage.getItem('student_token');
             const user = JSON.parse(localStorage.getItem('student_user') || 'null');
-            
+
             if (token && user) {
                 container.innerHTML = `
                     <span class="text-white-50 small me-1"><i class="bi bi-person-circle"></i> Olá, ${user.name}</span>
@@ -1278,73 +1302,53 @@
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
             const forgotForm = document.getElementById('forgotForm');
-            
-            // Configura botões de transição para o painel Esqueci a Senha
-            const forgotBtn = document.getElementById('forgotPasswordBtn');
-            const backBtn = document.getElementById('backToLoginBtn');
+
+            // Configura botões de transição para o painel de abas
             const loginTabBtn = document.getElementById('login-tab');
             const registerTabBtn = document.getElementById('register-tab');
-            
-            if (forgotBtn) {
-                forgotBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.getElementById('loginTabContent').classList.remove('show', 'active');
-                    document.getElementById('registerTabContent').classList.remove('show', 'active');
-                    document.getElementById('forgotTabContent').classList.add('show', 'active');
-                    if (forgotForm) forgotForm.reset();
-                    const forgotStatus = document.getElementById('forgotStatus');
-                    if (forgotStatus) forgotStatus.innerText = '';
-                });
-            }
-            
-            if (backBtn) {
-                backBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.getElementById('forgotTabContent').classList.remove('show', 'active');
-                    document.getElementById('loginTabContent').classList.add('show', 'active');
-                });
-            }
-            
+
             if (loginTabBtn) {
                 loginTabBtn.addEventListener('click', () => {
-                    document.getElementById('forgotTabContent').classList.remove('show', 'active');
+                    const forgotTab = document.getElementById('forgotTabContent');
+                    if (forgotTab) forgotTab.classList.remove('show', 'active');
                 });
             }
-            
+
             if (registerTabBtn) {
                 registerTabBtn.addEventListener('click', () => {
-                    document.getElementById('forgotTabContent').classList.remove('show', 'active');
+                    const forgotTab = document.getElementById('forgotTabContent');
+                    if (forgotTab) forgotTab.classList.remove('show', 'active');
                 });
             }
-            
+
             if (loginForm) {
                 loginForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const username = document.getElementById('authLoginUser').value.trim();
                     const password = document.getElementById('authLoginPass').value;
                     const status = document.getElementById('loginStatus');
-                    
+
                     status.innerText = "Entrando...";
                     status.className = "mt-2 text-center small text-warning";
-                    
+
                     try {
                         const response = await fetch('/api/auth/login', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ username, password })
                         });
-                        
+
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.error || 'Erro ao fazer login.');
-                        
+
                         localStorage.setItem('student_token', data.token);
                         localStorage.setItem('student_user', JSON.stringify(data.user));
-                        
+
                         status.innerText = "Login realizado com sucesso!";
                         status.className = "mt-2 text-center small text-success";
-                        
+
                         loginForm.reset();
-                        
+
                         setTimeout(() => {
                             const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
                             if (modal) modal.hide();
@@ -1352,14 +1356,14 @@
                             updateAuthNavbar();
                             loadSites();
                         }, 1000);
-                        
+
                     } catch (err) {
                         status.innerText = err.message;
                         status.className = "mt-2 text-center small text-danger";
                     }
                 });
             }
-            
+
             if (registerForm) {
                 registerForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
@@ -1368,7 +1372,7 @@
                     const username = document.getElementById('authRegUser').value.trim();
                     const password = document.getElementById('authRegPass').value;
                     const status = document.getElementById('registerStatus');
-                    
+
                     if (!email.endsWith('@aluno.educa.go.gov.br')) {
                         status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
                         status.className = "mt-2 text-center small text-danger";
@@ -1377,25 +1381,25 @@
 
                     status.innerText = "Criando conta...";
                     status.className = "mt-2 text-center small text-warning";
-                    
+
                     try {
                         const response = await fetch('/api/auth/register', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ name, email, username, password })
                         });
-                        
+
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.error || 'Erro ao registrar.');
-                        
+
                         localStorage.setItem('student_token', data.token);
                         localStorage.setItem('student_user', JSON.stringify(data.user));
-                        
+
                         status.innerText = "Conta criada com sucesso!";
                         status.className = "mt-2 text-center small text-success";
-                        
+
                         registerForm.reset();
-                        
+
                         setTimeout(() => {
                             const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
                             if (modal) modal.hide();
@@ -1403,7 +1407,7 @@
                             updateAuthNavbar();
                             loadSites();
                         }, 1000);
-                        
+
                     } catch (err) {
                         status.innerText = err.message;
                         status.className = "mt-2 text-center small text-danger";
@@ -1416,28 +1420,28 @@
                     e.preventDefault();
                     const email = document.getElementById('authForgotEmail').value.trim().toLowerCase();
                     const status = document.getElementById('forgotStatus');
-                    
+
                     if (!email.endsWith('@aluno.educa.go.gov.br')) {
                         status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
                         status.className = "mt-2 text-center small text-danger";
                         return;
                     }
-                    
+
                     const submitBtn = forgotForm.querySelector('button[type="submit"]');
                     submitBtn.disabled = true;
                     status.innerText = "Processando...";
                     status.className = "mt-2 text-center small text-warning";
-                    
+
                     try {
                         const response = await fetch('/api/auth/forgot-password', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ email })
                         });
-                        
+
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.error || 'Erro ao enviar solicitação.');
-                        
+
                         status.innerText = data.message || "Link de redefinição enviado!";
                         status.className = "mt-2 text-center small text-success";
                         forgotForm.reset();
@@ -1454,7 +1458,7 @@
         function populateEditSchools(city, selectedSchool = '') {
             const schoolSelect = document.getElementById('editSchoolSelect');
             schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
-            
+
             if (city && schoolsData[city]) {
                 schoolSelect.innerHTML = '<option value="">Selecione...</option>';
                 schoolsData[city].forEach(school => {
@@ -1470,7 +1474,7 @@
         function populateEditClasses(school, selectedClass = '') {
             const classSelect = document.getElementById('editClassSelect');
             classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
-            
+
             if (school) {
                 classSelect.innerHTML = `
                 <option value="">Selecione...</option>
@@ -1486,27 +1490,27 @@
         function openEditModal(siteId) {
             const site = allSites.find(g => (g.docId || g.id) === siteId);
             if (!site) return;
-            
+
             document.getElementById('editGameId').value = siteId;
             document.getElementById('editGameTitle').value = site.title || '';
             document.getElementById('editGameCategory').value = site.category || 'Portfolio';
-            
+
             const citySelect = document.getElementById('editCitySelect');
             const schoolSelect = document.getElementById('editSchoolSelect');
             const classSelect = document.getElementById('editClassSelect');
             const teacherSelect = document.getElementById('editTeacherSelect');
-            
+
             citySelect.value = site.city || '';
-            
+
             populateEditSchools(site.city, site.school);
             populateEditClasses(site.school, site.studentClass);
-            
+
             teacherSelect.value = site.teacher || '';
-            
+
             // Limpa campos de arquivo
             document.getElementById('editGameFile').value = '';
             document.getElementById('editCoverImage').value = '';
-            
+
             const previewWrapper = document.getElementById('editCoverPreviewWrapper');
             const previewImg = document.getElementById('editCoverPreview');
             if (site.coverUrl) {
@@ -1516,9 +1520,9 @@
                 previewImg.src = '';
                 previewWrapper.classList.add('d-none');
             }
-            
+
             document.getElementById('editStatus').innerText = '';
-            
+
             const editModal = new bootstrap.Modal(document.getElementById('editModal'));
             editModal.show();
         }
@@ -1527,22 +1531,22 @@
             const citySelect = document.getElementById('editCitySelect');
             const schoolSelect = document.getElementById('editSchoolSelect');
             const classSelect = document.getElementById('editClassSelect');
-            
+
             if (citySelect && schoolSelect && classSelect) {
                 citySelect.addEventListener('change', () => {
                     populateEditSchools(citySelect.value);
                     classSelect.innerHTML = '<option value="">Selecione a escola primeiro</option>';
                 });
-                
+
                 schoolSelect.addEventListener('change', () => {
                     populateEditClasses(schoolSelect.value);
                 });
             }
-            
+
             const coverInput = document.getElementById('editCoverImage');
             const previewWrapper = document.getElementById('editCoverPreviewWrapper');
             const previewImg = document.getElementById('editCoverPreview');
-            
+
             if (coverInput) {
                 coverInput.addEventListener('change', () => {
                     const file = coverInput.files[0];
@@ -1556,19 +1560,19 @@
                     }
                 });
             }
-            
+
             const editGameForm = document.getElementById('editGameForm');
             if (editGameForm) {
                 editGameForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    
+
                     const submitBtn = editGameForm.querySelector('button[type="submit"]');
                     const status = document.getElementById('editStatus');
-                    
+
                     status.innerText = "Salvando alterações...";
                     status.className = "mt-2 text-center small text-warning";
                     submitBtn.disabled = true;
-                    
+
                     const siteId = document.getElementById('editGameId').value;
                     const gameTitle = document.getElementById('editGameTitle').value.trim();
                     const gameCategory = document.getElementById('editGameCategory').value;
@@ -1576,17 +1580,17 @@
                     const school = document.getElementById('editSchoolSelect').value;
                     const studentClass = document.getElementById('editClassSelect').value;
                     const teacher = document.getElementById('editTeacherSelect').value;
-                    
+
                     const gameFile = document.getElementById('editGameFile').files[0] || null;
                     const coverFile = document.getElementById('editCoverImage').files[0] || null;
-                    
+
                     if (!gameTitle || !gameCategory || !city || !school || !studentClass || !teacher) {
                         status.innerText = "Preencha todos os campos obrigatórios.";
                         status.className = "mt-2 text-center small text-danger";
                         submitBtn.disabled = false;
                         return;
                     }
-                    
+
                     const formData = new FormData();
                     formData.append('gameTitle', gameTitle);
                     formData.append('gameCategory', gameCategory);
@@ -1594,36 +1598,36 @@
                     formData.append('school', school);
                     formData.append('studentClass', studentClass);
                     formData.append('teacher', teacher);
-                    
+
                     if (gameFile) formData.append('gameFile', gameFile);
                     if (coverFile) formData.append('coverImage', coverFile);
-                    
+
                     const token = localStorage.getItem('student_token');
                     const headers = {};
                     if (token) {
                         headers['Authorization'] = `Bearer ${token}`;
                     }
-                    
+
                     try {
                         const response = await fetch(`/api/sites/${siteId}/update`, {
                             method: 'POST',
                             headers: headers,
                             body: formData
                         });
-                        
+
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.error || 'Erro ao atualizar o site.');
-                        
+
                         status.innerText = "Site atualizado com sucesso!";
                         status.className = "mt-2 text-center small text-success";
-                        
+
                         setTimeout(() => {
                             const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
                             if (modal) modal.hide();
                             status.innerText = "";
                             loadSites();
                         }, 1500);
-                        
+
                     } catch (err) {
                         status.innerText = err.message;
                         status.className = "mt-2 text-center small text-danger";

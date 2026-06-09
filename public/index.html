@@ -24,9 +24,11 @@
             </a>
             <div class="d-flex align-items-center gap-3">
                 <a href="/" class="nav-link text-light fw-semibold"><i class="bi bi-joystick me-1"></i>Jogos</a>
-                <a href="/sites.html" class="nav-link text-light opacity-75"><i class="bi bi-code-slash me-1"></i>Sites</a>
+                <a href="/sites.html" class="nav-link text-light opacity-75"><i
+                        class="bi bi-code-slash me-1"></i>Sites</a>
                 <div id="authNavContainer" class="d-flex align-items-center gap-2">
-                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#authModal" id="navLoginBtn">
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal"
+                        data-bs-target="#authModal" id="navLoginBtn">
                         <i class="bi bi-person-fill me-1"></i> Entrar
                     </button>
                 </div>
@@ -54,7 +56,8 @@
                     <div class="premium-carousel-wrapper position-relative">
                         <!-- Glowing blob background behind the carousel -->
                         <div class="carousel-glow-shape"></div>
-                        <div id="topWeeklyCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+                        <div id="topWeeklyCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel"
+                            data-bs-interval="5000">
                             <div class="carousel-indicators" id="carouselIndicators"></div>
                             <div class="carousel-inner" id="carouselInner">
                                 <div class="carousel-item active">
@@ -81,7 +84,8 @@
             <div class="row g-3">
                 <!-- Pesquisa por Aluno -->
                 <div class="col-md-4">
-                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno ou Professor</label>
+                    <label for="searchInput" class="form-label"><i class="bi bi-search"></i> Pesquisar Aluno ou
+                        Professor</label>
                     <input type="text" id="searchInput" class="form-control form-control-clean"
                         placeholder="Digite o nome do aluno, jogo ou professor...">
                 </div>
@@ -107,10 +111,14 @@
                     <label for="filterYear" class="form-label">Ano</label>
                     <select id="filterYear" class="form-select form-control-clean">
                         <option value="">Todos</option>
-                        <option value="1° Ano Técnico em Programação de Jogos Digitais">1° Ano Técnico em Programação de Jogos Digitais</option>
-                        <option value="1° Ano Técnico em Desenvolvimento de Sistemas">1° Ano Técnico em Desenvolvimento de Sistemas</option>
-                        <option value="2° Ano Técnico em Programação de Jogos Digitais">2° Ano Técnico em Programação de Jogos Digitais</option>
-                        <option value="2° Ano Técnico em Desenvolvimento de Sistemas">2° Ano Técnico em Desenvolvimento de Sistemas</option>
+                        <option value="1° Ano Técnico em Programação de Jogos Digitais">1° Ano Técnico em Programação de
+                            Jogos Digitais</option>
+                        <option value="1° Ano Técnico em Desenvolvimento de Sistemas">1° Ano Técnico em Desenvolvimento
+                            de Sistemas</option>
+                        <option value="2° Ano Técnico em Programação de Jogos Digitais">2° Ano Técnico em Programação de
+                            Jogos Digitais</option>
+                        <option value="2° Ano Técnico em Desenvolvimento de Sistemas">2° Ano Técnico em Desenvolvimento
+                            de Sistemas</option>
                     </select>
                 </div>
                 <!-- Botão Limpar Filtros -->
@@ -221,7 +229,8 @@
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">
                                         Arquivo do Jogo
-                                        <span class="ms-1" style="font-size:.7rem;opacity:.6;">.zip &bull; .html &bull; .py</span>
+                                        <span class="ms-1" style="font-size:.7rem;opacity:.6;">.zip &bull; .html &bull;
+                                            .py</span>
                                     </label>
                                     <input type="file" name="gameFile" class="form-control form-control-clean"
                                         id="gameFile" accept=".zip,.html,.py" required>
@@ -240,8 +249,10 @@
                                         id="coverImage" accept="image/*">
                                     <!-- Preview da imagem -->
                                     <div id="coverPreviewWrapper" class="mt-2 d-none">
-                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
-                                            <img id="coverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                        <div
+                                            style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="coverPreview" src="" alt="Preview"
+                                                style="width:100%; height:120px; object-fit:cover; display:block;">
                                             <button type="button" id="removeCoverBtn" title="Remover imagem"
                                                 style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border:none;color:#fff;border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
                                                 <i class="bi bi-x"></i>
@@ -260,20 +271,23 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Modal de Autenticação (Login / Cadastro) -->
     <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-clean">
                 <div class="modal-body p-5">
-                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4" data-bs-dismiss="modal"></button>
-                    
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4"
+                        data-bs-dismiss="modal"></button>
+
                     <ul class="nav nav-pills nav-justified mb-4" id="authTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginTabContent" type="button" role="tab">Entrar</button>
+                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="pill"
+                                data-bs-target="#loginTabContent" type="button" role="tab">Entrar</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="pill" data-bs-target="#registerTabContent" type="button" role="tab">Cadastrar</button>
+                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="pill"
+                                data-bs-target="#registerTabContent" type="button" role="tab">Cadastrar</button>
                         </li>
                     </ul>
 
@@ -283,14 +297,18 @@
                             <form id="loginForm">
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Usuário</label>
-                                    <input type="text" class="form-control form-control-clean" id="authLoginUser" required>
+                                    <input type="text" class="form-control form-control-clean" id="authLoginUser"
+                                        required>
                                 </div>
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <label class="form-label text-secundary small mb-0">Senha</label>
-                                        <a href="#" class="small text-decoration-none" id="forgotPasswordBtn" style="color: #f25424;">Esqueci a senha</a>
                                     </div>
-                                    <input type="password" class="form-control form-control-clean mt-1" id="authLoginPass" required>
+                                    <input type="password" class="form-control form-control-clean mt-1"
+                                        id="authLoginPass" required>
+                                    <a href="/forgot-password.html" class="small text-decoration-none"
+                                        id="forgotPasswordBtn" style="color: #f25424;">Esqueci a senha</a>
+
                                 </div>
                                 <div class="d-grid mt-4">
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Entrar</button>
@@ -298,25 +316,30 @@
                                 <div id="loginStatus" class="mt-2 text-center small text-danger"></div>
                             </form>
                         </div>
-                        
+
                         <div class="tab-pane fade" id="registerTabContent" role="tabpanel">
                             <h3 class="mb-3 fw-bold text-center">Nova Conta</h3>
                             <form id="registerForm">
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Nome Completo</label>
-                                    <input type="text" class="form-control form-control-clean" id="authRegName" required>
+                                    <input type="text" class="form-control form-control-clean" id="authRegName"
+                                        required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">E-mail Escolar (@aluno.educa.go.gov.br)</label>
-                                    <input type="email" class="form-control form-control-clean" id="authRegEmail" placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                    <label class="form-label text-secundary small">E-mail Escolar
+                                        (@aluno.educa.go.gov.br)</label>
+                                    <input type="email" class="form-control form-control-clean" id="authRegEmail"
+                                        placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Usuário (Apelido)</label>
-                                    <input type="text" class="form-control form-control-clean" id="authRegUser" required>
+                                    <input type="text" class="form-control form-control-clean" id="authRegUser"
+                                        required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Senha (mínimo 6 chars)</label>
-                                    <input type="password" class="form-control form-control-clean" id="authRegPass" required minlength="6">
+                                    <input type="password" class="form-control form-control-clean" id="authRegPass"
+                                        required minlength="6">
                                 </div>
                                 <div class="d-grid mt-4">
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Cadastrar</button>
@@ -327,17 +350,22 @@
 
                         <div class="tab-pane fade" id="forgotTabContent" role="tabpanel">
                             <h3 class="mb-3 fw-bold text-center">Recuperar Senha</h3>
-                            <p class="small text-white-50 text-center mb-4">Insira seu e-mail escolar cadastrado. Enviaremos as instruções de redefinição de senha.</p>
+                            <p class="small text-white-50 text-center mb-4">Insira seu e-mail escolar cadastrado.
+                                Enviaremos as instruções de redefinição de senha.</p>
                             <form id="forgotForm">
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">E-mail Escolar (@aluno.educa.go.gov.br)</label>
-                                    <input type="email" class="form-control form-control-clean" id="authForgotEmail" placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                    <label class="form-label text-secundary small">E-mail Escolar
+                                        (@aluno.educa.go.gov.br)</label>
+                                    <input type="email" class="form-control form-control-clean" id="authForgotEmail"
+                                        placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
                                 </div>
                                 <div class="d-grid mt-4">
-                                    <button type="submit" class="btn btn-modern-primary btn-lg">Enviar Instruções</button>
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Enviar
+                                        Instruções</button>
                                 </div>
                                 <div class="text-center mt-3">
-                                    <a href="#" class="small text-decoration-none" id="backToLoginBtn" style="color: #f25424;">Voltar para o Login</a>
+                                    <a href="#" class="small text-decoration-none" id="backToLoginBtn"
+                                        style="color: #f25424;">Voltar para o Login</a>
                                 </div>
                                 <div id="forgotStatus" class="mt-2 text-center small"></div>
                             </form>
@@ -356,7 +384,8 @@
                     <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4"
                         data-bs-dismiss="modal"></button>
                     <div class="row">
-                        <div class="col-md-5 d-flex align-items-center justify-content-center bg-modal-side rounded-start">
+                        <div
+                            class="col-md-5 d-flex align-items-center justify-content-center bg-modal-side rounded-start">
                             <div class="text-center">
                                 <i class="bi bi-pencil-square display-3 text-gradient mb-3"></i>
                                 <h5>Editar Jogo</h5>
@@ -415,7 +444,7 @@
                                         <option value="Daniel">Daniel</option>
                                     </select>
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">
                                         Substituir Arquivo do Jogo
@@ -439,13 +468,16 @@
                                         Deixe vazio para manter a imagem de capa atual.
                                     </div>
                                     <div id="editCoverPreviewWrapper" class="mt-2 d-none">
-                                        <div style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
-                                            <img id="editCoverPreview" src="" alt="Preview" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                        <div
+                                            style="position:relative; border-radius:10px; overflow:hidden; max-height:120px;">
+                                            <img id="editCoverPreview" src="" alt="Preview"
+                                                style="width:100%; height:120px; object-fit:cover; display:block;">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="d-grid">
-                                    <button type="submit" class="btn btn-modern-primary btn-lg">Salvar Alterações</button>
+                                    <button type="submit" class="btn btn-modern-primary btn-lg">Salvar
+                                        Alterações</button>
                                 </div>
                                 <div id="editStatus" class="mt-2 text-center small"></div>
                             </form>
@@ -468,8 +500,11 @@
                         <i class="bi bi-x-lg me-2"></i> Fechar
                     </button>
                 </div>
-                <div class="modal-body p-0 d-flex justify-content-center align-items-center bg-black" style="overflow: hidden;">
-                    <iframe id="gameFrame" src="" frameborder="0" class="w-100 h-100" allow="autoplay; fullscreen; xr-spatial-tracking; execution-while-not-rendered; execution-while-out-of-viewport" style="border:none;"></iframe>
+                <div class="modal-body p-0 d-flex justify-content-center align-items-center bg-black"
+                    style="overflow: hidden;">
+                    <iframe id="gameFrame" src="" frameborder="0" class="w-100 h-100"
+                        allow="autoplay; fullscreen; xr-spatial-tracking; execution-while-not-rendered; execution-while-out-of-viewport"
+                        style="border:none;"></iframe>
                 </div>
             </div>
         </div>
