@@ -229,11 +229,18 @@
      color: var(--text-muted);
  }
 
- .modal-clean .modal-body {
-     background: var(--bg-card);
-     border-radius: var(--border-radius);
-     border: 1px solid rgba(255, 255, 255, 0.1);
- }
+  .modal-clean {
+      background: var(--bg-card) !important;
+      border-radius: var(--border-radius) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      overflow: hidden;
+  }
+
+  .modal-clean .modal-body {
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+  }
 
  .form-control-clean {
      background: var(--bg-input);

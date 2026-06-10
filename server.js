@@ -1,9 +1,12 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const AdmZip = require('adm-zip');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
 
 // Firebase Initialization
 const { initializeApp } = require('firebase/app');
@@ -30,6 +33,30 @@ getDocs(collection(db, "games")).then(() => {
 }).catch(err => {
     console.error('[Init] ✗ Firebase Firestore connection failed:', err.message);
 });
+
+// --- SMTP CONFIGURATION FOR EMAIL RECOVERY ---
+const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true', // true para porta 465, false para 587 ou 25
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+    }
+});
+
+// Testar transporter no início
+if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    transporter.verify((error) => {
+        if (error) {
+            console.error('[SMTP] ✗ Erro de conexão SMTP:', error.message);
+        } else {
+            console.log('[SMTP] ✓ Servidor SMTP pronto para enviar e-mails');
+        }
+    });
+} else {
+    console.warn('[SMTP] ⚠ SMTP não configurado. Os e-mails de recuperação serão apenas exibidos no console.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -316,6 +343,134 @@ app.get('/api/auth/me', authenticateUser, requireAuth, (req, res) => {
     res.json({ user: req.user });
 });
 
+// --- EMAIL TEMPLATE FOR PASSWORD RECOVERY ---
+function getRecoveryEmailTemplate(name, resetLink) {
+    const currentYear = new Date().getFullYear();
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperação de Senha - Tec Senai Jardim Colorado</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #072a59;
+            color: #ffffff;
+            margin: 0;
+            padding: 40px 10px;
+        }
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background-color: #13141a;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+        .header {
+            background: linear-gradient(135deg, #072a59 0%, #0c4da1 100%);
+            padding: 35px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .brand-tec {
+            color: #f25424;
+        }
+        .brand-senai {
+            color: #ffffff;
+        }
+        .content {
+            padding: 40px 30px;
+            background-color: #13141a;
+        }
+        .content h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .content p {
+            color: #a0a5b1;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0 0 20px 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 35px 0;
+        }
+        .btn {
+            background-color: #f25424;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 15px;
+            display: inline-block;
+            box-shadow: 0 6px 20px rgba(242, 84, 36, 0.35);
+            transition: all 0.3s ease;
+        }
+        .footer {
+            background-color: #0c0d12;
+            padding: 25px 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c727f;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .link-fallback {
+            word-break: break-all;
+            color: #0c4da1;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .warning-text {
+            font-size: 13px;
+            color: #7b808c;
+            border-left: 3px solid #f25424;
+            padding-left: 12px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="brand-tec">Tec Senai</span> <span class="brand-senai">Jardim Colorado</span></h1>
+        </div>
+        <div class="content">
+            <h2>Redefinição de Senha</h2>
+            <p>Olá, <strong>${name}</strong>,</p>
+            <p>Recebemos uma solicitação para redefinir a senha da sua conta na plataforma Tec Jogos Senai.</p>
+            <p>Para criar uma nova senha, clique no botão abaixo:</p>
+            <div class="btn-container">
+                <a href="${resetLink}" class="btn" target="_blank">Redefinir Minha Senha</a>
+            </div>
+            <div class="warning-text">
+                Este link é válido por <strong>1 hora</strong>. Se você não solicitou essa redefinição, pode ignorar este e-mail com segurança.
+            </div>
+            <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); margin: 35px 0;">
+            <p style="font-size: 12px; color: #6c727f; margin-bottom: 5px;">Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
+            <p style="font-size: 12px; margin-top: 0;"><a href="${resetLink}" class="link-fallback" target="_blank">${resetLink}</a></p>
+        </div>
+        <div class="footer">
+            © ${currentYear} Tec Senai Jardim Colorado. Todos os direitos reservados.
+        </div>
+    </div>
+</body>
+</html>`;
+}
+
 // Solicitar recuperação de senha
 app.post('/api/auth/forgot-password', rateLimiter(10, 15 * 60 * 1000), async (req, res) => {
     try {
@@ -357,12 +512,35 @@ app.post('/api/auth/forgot-password', rateLimiter(10, 15 * 60 * 1000), async (re
         
         await addDoc(collection(db, "password_resets"), resetEntry);
         
-        // Exibir link no console do servidor para redefinição local
-        const resetLink = `http://localhost:${PORT}/reset-password.html?token=${token}`;
+        // Gerar link de recuperação dinâmico com base na origem da requisição
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.get('host');
+        const resetLink = `${protocol}://${host}/reset-password.html?token=${token}`;
+        
         console.log(`\n========================================`);
         console.log(`[PASSWORD RESET] Solicitação para usuário: ${userDoc.username}`);
         console.log(`Link: ${resetLink}`);
         console.log(`========================================\n`);
+
+        // Enviar e-mail caso SMTP esteja configurado
+        if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+            const mailOptions = {
+                from: process.env.SMTP_FROM || `"Tec Senai Jardim Colorado" <${process.env.SMTP_USER}>`,
+                to: userDoc.email,
+                subject: 'Recuperação de Senha - Tec Senai Jardim Colorado',
+                html: getRecoveryEmailTemplate(userDoc.name || userDoc.username, resetLink)
+            };
+
+            try {
+                await transporter.sendMail(mailOptions);
+                console.log(`[SMTP] E-mail de redefinição enviado com sucesso para: ${userDoc.email}`);
+            } catch (mailErr) {
+                console.error('[SMTP Error] Falha ao enviar e-mail:', mailErr);
+                return res.status(500).json({ error: 'Erro ao enviar o e-mail de recuperação. Por favor, tente novamente mais tarde.' });
+            }
+        } else {
+            console.warn(`[SMTP Warning] SMTP não configurado. E-mail de redefinição não foi enviado (link logado no console acima).`);
+        }
         
         res.json({ message: 'Se o e-mail estiver cadastrado, as instruções foram enviadas para seu e-mail escolar.' });
     } catch (err) {

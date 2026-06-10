@@ -4,3 +4,5 @@ public/games/
 .firebase/
 .firebaserc
 test-game.zip
+.env
+
