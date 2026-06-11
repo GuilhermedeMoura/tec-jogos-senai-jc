@@ -967,8 +967,9 @@ function setupAuthForms() {
             const password = document.getElementById('authRegPass').value;
             const status = document.getElementById('registerStatus');
             
-            if (!email.endsWith('@aluno.educa.go.gov.br')) {
-                status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                status.innerText = "Utilize um e-mail válido.";
                 status.className = "mt-2 text-center small text-danger";
                 return;
             }
@@ -1015,8 +1016,9 @@ function setupAuthForms() {
             const email = document.getElementById('authForgotEmail').value.trim().toLowerCase();
             const status = document.getElementById('forgotStatus');
             
-            if (!email.endsWith('@aluno.educa.go.gov.br')) {
-                status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                status.innerText = "Utilize um e-mail válido.";
                 status.className = "mt-2 text-center small text-danger";
                 return;
             }
@@ -1406,8 +1408,9 @@ async function handleGoogleSignIn(statusElementId) {
         const result = await signInWithPopup(auth, provider);
         const firebaseUser = result.user;
         
-        if (!firebaseUser.email.endsWith('@aluno.educa.go.gov.br')) {
-            throw new Error('Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(firebaseUser.email)) {
+            throw new Error('Utilize um e-mail válido.');
         }
         
         // Enviar os dados recebidos para o backend para criar sessão ou registrar

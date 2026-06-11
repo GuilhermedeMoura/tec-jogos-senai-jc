@@ -247,9 +247,10 @@ app.post('/api/auth/register', rateLimiter(10, 60 * 60 * 1000), async (req, res)
             return res.status(400).json({ error: 'Nome de usuário deve ter pelo menos 3 caracteres e a senha pelo menos 6.' });
         }
 
-        // Validar e-mail escolar
-        if (!email.endsWith('@aluno.educa.go.gov.br')) {
-            return res.status(400).json({ error: 'Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).' });
+        // Validar e-mail
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Utilize um e-mail válido.' });
         }
 
         // Verificar se usuário existe
@@ -349,9 +350,10 @@ app.post('/api/auth/google', rateLimiter(30, 60 * 1000), async (req, res) => {
             return res.status(400).json({ error: 'Dados do Google incompletos.' });
         }
         
-        // Validar e-mail escolar
-        if (!email.endsWith('@aluno.educa.go.gov.br')) {
-            return res.status(400).json({ error: 'Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).' });
+        // Validar e-mail
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Utilize um e-mail válido.' });
         }
         
         // Verificar se usuário existe pelo e-mail

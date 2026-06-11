@@ -328,10 +328,9 @@
                                         required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">E-mail Escolar
-                                        (@aluno.educa.go.gov.br)</label>
+                                    <label class="form-label text-secundary small">E-mail</label>
                                     <input type="email" class="form-control form-control-clean" id="authRegEmail"
-                                        placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                        placeholder="ex: seu-email@exemplo.com" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-secundary small">Usuário (Apelido)</label>
@@ -352,14 +351,13 @@
 
                         <div class="tab-pane fade" id="forgotTabContent" role="tabpanel">
                             <h3 class="mb-3 fw-bold text-center">Recuperar Senha</h3>
-                            <p class="small text-white-50 text-center mb-4">Insira seu e-mail escolar cadastrado.
+                            <p class="small text-white-50 text-center mb-4">Insira seu e-mail cadastrado.
                                 Enviaremos as instruções de redefinição de senha.</p>
                             <form id="forgotForm">
                                 <div class="mb-3">
-                                    <label class="form-label text-secundary small">E-mail Escolar
-                                        (@aluno.educa.go.gov.br)</label>
+                                    <label class="form-label text-secundary small">E-mail</label>
                                     <input type="email" class="form-control form-control-clean" id="authForgotEmail"
-                                        placeholder="ex: nome.sobrenome@aluno.educa.go.gov.br" required>
+                                        placeholder="ex: seu-email@exemplo.com" required>
                                 </div>
                                 <div class="d-grid mt-4">
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Enviar
@@ -1373,8 +1371,9 @@
                     const password = document.getElementById('authRegPass').value;
                     const status = document.getElementById('registerStatus');
 
-                    if (!email.endsWith('@aluno.educa.go.gov.br')) {
-                        status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        status.innerText = "Utilize um e-mail válido.";
                         status.className = "mt-2 text-center small text-danger";
                         return;
                     }
@@ -1421,8 +1420,9 @@
                     const email = document.getElementById('authForgotEmail').value.trim().toLowerCase();
                     const status = document.getElementById('forgotStatus');
 
-                    if (!email.endsWith('@aluno.educa.go.gov.br')) {
-                        status.innerText = "Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).";
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        status.innerText = "Utilize um e-mail válido.";
                         status.className = "mt-2 text-center small text-danger";
                         return;
                     }
