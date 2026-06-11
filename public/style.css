@@ -420,6 +420,7 @@ select.admin-field-value option:checked {
 .premium-carousel-wrapper {
     max-width: 500px;
     margin: 0 auto;
+    border-radius: var(--border-radius);
     z-index: 5;
 }
 
