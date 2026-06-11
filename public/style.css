@@ -1080,3 +1080,165 @@ select.admin-field-value option:checked {
 .or-separator::after {
     margin-left: 10px;
 }
+
+/* ==========================================
+   MELHORIAS DE RESPONSIVIDADE MOBILE
+   ========================================== */
+
+/* Hero Title Responsiveness */
+.hero-section h1.display-2 {
+    font-size: calc(2.2rem + 3.5vw);
+    line-height: 1.15;
+}
+
+@media (max-width: 576px) {
+    .hero-section h1.display-2 {
+        font-size: 2.6rem;
+    }
+}
+
+/* Colapso Responsivo da Navbar */
+@media (max-width: 991px) {
+    .navbar-collapse {
+        background: rgba(15, 20, 45, 0.96);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        margin-top: 15px;
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .glass-nav .d-flex {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .glass-nav .nav-link,
+    .glass-nav #authNavContainer,
+    .glass-nav button {
+        text-align: center;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Redimensionamento Responsivo do Gamepad Virtual */
+@media (max-width: 767px) {
+    .virtual-gamepad-overlay {
+        padding: 10px 15px;
+    }
+
+    .dpad {
+        width: 110px;
+        height: 110px;
+    }
+
+    .dpad-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 1.1rem;
+    }
+
+    .dpad-up {
+        top: 2px;
+        left: 38px;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .dpad-down {
+        bottom: 2px;
+        left: 38px;
+        border-radius: 0 0 8px 8px;
+    }
+
+    .dpad-left {
+        top: 38px;
+        left: 2px;
+        border-radius: 8px 0 0 8px;
+    }
+
+    .dpad-right {
+        top: 38px;
+        right: 2px;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .dpad-center {
+        top: 38px;
+        left: 38px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .action-buttons {
+        width: 120px;
+        height: 120px;
+    }
+
+    .action-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 0.7rem;
+    }
+
+    .btn-a {
+        bottom: 2px;
+        right: 41px;
+        width: 42px;
+        height: 42px;
+        font-size: 0.55rem;
+    }
+
+    .btn-b {
+        top: 41px;
+        left: 2px;
+    }
+
+    .btn-x {
+        top: 2px;
+        right: 41px;
+    }
+
+    .btn-y {
+        top: 41px;
+        right: 2px;
+    }
+
+    .gamepad-center-menu {
+        margin-bottom: 5px;
+        padding: 4px 10px;
+    }
+}
+
+/* Play Modal Header Responsiveness */
+@media (max-width: 576px) {
+    #playModal .modal-header {
+        padding: 10px 15px !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 8px !important;
+        background: rgba(0, 0, 0, 0.9) !important;
+    }
+
+    #playModalTitle {
+        font-size: 1.1rem !important;
+        text-align: center;
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+    #playModal .modal-header .d-flex {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Login Card Responsiveness (Professores) */
+@media (max-width: 400px) {
+    .login-card {
+        padding: 1.8rem 1.5rem !important;
+    }
+}

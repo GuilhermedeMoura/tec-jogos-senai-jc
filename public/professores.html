@@ -231,14 +231,20 @@
             <a class="navbar-brand fw-bold fs-5" href="/">
                 <span class="text-gradient">Tec Senai</span> JC
             </a>
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <a href="/" class="nav-link text-light opacity-75"><i class="bi bi-house me-1"></i>Início</a>
-                <span class="text-white-50" style="font-size:.8rem;">
-                    <i class="bi bi-person-circle me-1"></i>Prof. logado
-                </span>
-                <button class="logout-btn" id="logoutBtn">
-                    <i class="bi bi-box-arrow-right me-1"></i>Sair
-                </button>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <div class="d-flex align-items-center gap-3 ms-auto mt-3 mt-lg-0">
+                    <a href="/" class="nav-link text-light opacity-75"><i class="bi bi-house me-1"></i>Início</a>
+                    <span class="text-white-50" style="font-size:.8rem;">
+                        <i class="bi bi-person-circle me-1"></i>Prof. logado
+                    </span>
+                    <button class="logout-btn" id="logoutBtn">
+                        <i class="bi bi-box-arrow-right me-1"></i>Sair
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -290,6 +296,9 @@
             <div class="spinner-border text-secondary" role="status"></div>
             <p class="text-muted mt-3">Carregando...</p>
         </div>
+
+        <!-- Container de Paginação -->
+        <div id="paginationContainer" class="pagination-container"></div>
     </main>
 </div>
 
@@ -373,6 +382,8 @@ logoutBtn.addEventListener('click', () => {
 // ── Data ───────────────────────────────────────────────────────
 let allItems   = [];   // { ...game/site, _type: 'game'|'site' }
 let activeTab  = 'games';
+let currentPage = 1;
+const itemsPerPage = 8;
 
 const TEACHERS = ['', 'Heberson', 'Guilherme', 'Francisco', 'Patrícia',
                   'Agenor', 'Cleusa', 'Victor', 'Daniel'];
@@ -397,6 +408,7 @@ async function loadAll() {
         toast('Erro ao carregar dados: ' + err.message, 'error');
     }
     document.getElementById('adminLoading').classList.add('d-none');
+    currentPage = 1;
     renderGrid();
 }
 
@@ -407,11 +419,15 @@ document.getElementById('tabBar').addEventListener('click', e => {
     document.querySelectorAll('.tab-pill').forEach(p => p.classList.remove('active'));
     pill.classList.add('active');
     activeTab = pill.dataset.tab;
+    currentPage = 1;
     renderGrid();
 });
 
 // ── Search ─────────────────────────────────────────────────────
-document.getElementById('adminSearch').addEventListener('input', renderGrid);
+document.getElementById('adminSearch').addEventListener('input', () => {
+    currentPage = 1;
+    renderGrid();
+});
 
 // ── Render ─────────────────────────────────────────────────────
 function renderGrid() {
@@ -423,19 +439,99 @@ function renderGrid() {
         if (activeTab === 'games' && item._type !== 'game') return false;
         if (activeTab === 'sites' && item._type !== 'site') return false;
         if (q && !(item.title || '').toLowerCase().includes(q) &&
-                 !(item.author || '').toLowerCase().includes(q)) return false;
+                 !(item.author || '').toLowerCase().includes(q) &&
+                 !(item.teacher || '').toLowerCase().includes(q)) return false;
         return true;
     });
 
     document.getElementById('adminEmpty').classList.toggle('d-none', filtered.length > 0);
 
-    filtered.forEach(item => {
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    if (currentPage > totalPages && totalPages > 0) {
+        currentPage = 1;
+    }
+
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = Math.min(start + itemsPerPage, filtered.length);
+    const paginatedItems = filtered.slice(start, end);
+
+    paginatedItems.forEach(item => {
         const col = document.createElement('div');
         col.className = 'col';
         col.innerHTML = buildCard(item);
         grid.appendChild(col);
         attachCardListeners(col, item);
     });
+
+    renderPagination(filtered.length);
+}
+
+function renderPagination(filteredLength) {
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) return;
+    paginationContainer.innerHTML = '';
+
+    const totalPages = Math.ceil(filteredLength / itemsPerPage);
+    if (totalPages <= 1) return;
+
+    // Botão Anterior
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'pagination-btn';
+    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderGrid();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    paginationContainer.appendChild(prevBtn);
+
+    // Numeração de páginas inteligente
+    const range = 1;
+    let showEllipsisBefore = false;
+    let showEllipsisAfter = false;
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - range && i <= currentPage + range)) {
+            const pageBtn = document.createElement('button');
+            pageBtn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+            pageBtn.textContent = i;
+            pageBtn.addEventListener('click', () => {
+                currentPage = i;
+                renderGrid();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            paginationContainer.appendChild(pageBtn);
+        } else if (i < currentPage - range && !showEllipsisBefore) {
+            showEllipsisBefore = true;
+            const ellipsis = document.createElement('span');
+            ellipsis.className = 'pagination-ellipsis';
+            ellipsis.textContent = '...';
+            paginationContainer.appendChild(ellipsis);
+        } else if (i > currentPage + range && !showEllipsisAfter) {
+            showEllipsisAfter = true;
+            const ellipsis = document.createElement('span');
+            ellipsis.className = 'pagination-ellipsis';
+            ellipsis.textContent = '...';
+            paginationContainer.appendChild(ellipsis);
+        }
+    }
+
+    // Botão Próximo
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'pagination-btn';
+    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderGrid();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    paginationContainer.appendChild(nextBtn);
 }
 
 function buildCard(item) {
