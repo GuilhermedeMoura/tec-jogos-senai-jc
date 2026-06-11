@@ -1,3 +1,18 @@
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD0J8UyDyOxhhpj9pvNj-eUuSRiWJ8Qjv8",
+  authDomain: "tec-jogos-senai-jc.firebaseapp.com",
+  projectId: "tec-jogos-senai-jc",
+  storageBucket: "tec-jogos-senai-jc.firebasestorage.app",
+  messagingSenderId: "952832354030",
+  appId: "1:952832354030:web:93698003ddef974521f5ff"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+
 const form = document.getElementById('gameForm');
 const gamesContainer = document.getElementById('gamesContainer');
 const emptyState = document.getElementById('emptyState');
@@ -33,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAuthForms();
     setupEditForm();
     setupVirtualGamepad();
+    setupGoogleAuthButtons();
 });
 
 // --- LÓGICA DO MODAL DE UPLOAD ---
@@ -1373,4 +1389,81 @@ function setupVirtualGamepad() {
         btn.addEventListener('mouseup', handlePressEnd);
         btn.addEventListener('mouseleave', handlePressEnd);
     });
+}
+
+// --- SISTEMA DE AUTENTICAÇÃO COM GOOGLE ---
+async function handleGoogleSignIn(statusElementId) {
+    const status = document.getElementById(statusElementId);
+    if (status) {
+        status.innerText = "Autenticando com o Google...";
+        status.className = "mt-2 text-center small text-warning";
+    }
+    
+    try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        
+        const result = await signInWithPopup(auth, provider);
+        const firebaseUser = result.user;
+        
+        if (!firebaseUser.email.endsWith('@aluno.educa.go.gov.br')) {
+            throw new Error('Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).');
+        }
+        
+        // Enviar os dados recebidos para o backend para criar sessão ou registrar
+        const response = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: firebaseUser.email,
+                name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+                uid: firebaseUser.uid
+            })
+        });
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao sincronizar com o servidor.');
+        
+        localStorage.setItem('student_token', data.token);
+        localStorage.setItem('student_user', JSON.stringify(data.user));
+        
+        if (status) {
+            status.innerText = "Conectado com sucesso!";
+            status.className = "mt-2 text-center small text-success";
+        }
+        
+        setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+            if (modal) modal.hide();
+            if (status) status.innerText = "";
+            updateAuthNavbar();
+            loadGames();
+        }, 1000);
+        
+    } catch (err) {
+        if (status) {
+            status.innerText = err.message;
+            status.className = "mt-2 text-center small text-danger";
+        }
+        console.error('[Google Auth Error]', err);
+    }
+}
+
+function setupGoogleAuthButtons() {
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const googleRegisterBtn = document.getElementById('googleRegisterBtn');
+    
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleGoogleSignIn('loginStatus');
+        });
+    }
+    
+    if (googleRegisterBtn) {
+        googleRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleGoogleSignIn('registerStatus');
+        });
+    }
 }

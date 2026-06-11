@@ -1041,3 +1041,41 @@ select.admin-field-value option:checked {
         padding: 4px 12px;
     }
 }
+
+/* Google Login Button Styles */
+.btn-google-login {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-google-login:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
+.or-separator {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.or-separator::before,
+.or-separator::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.or-separator::before {
+    margin-right: 10px;
+}
+
+.or-separator::after {
+    margin-left: 10px;
+}

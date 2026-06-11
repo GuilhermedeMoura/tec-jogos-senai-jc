@@ -338,6 +338,85 @@ app.post('/api/auth/login', rateLimiter(30, 60 * 1000), async (req, res) => {
     }
 });
 
+// Login/Registro com Conta Google
+app.post('/api/auth/google', rateLimiter(30, 60 * 1000), async (req, res) => {
+    try {
+        const email = sanitizeInput(req.body.email, 100).toLowerCase();
+        const name = sanitizeInput(req.body.name, 50);
+        const googleUid = req.body.uid; // ID do Firebase Auth
+        
+        if (!email || !name || !googleUid) {
+            return res.status(400).json({ error: 'Dados do Google incompletos.' });
+        }
+        
+        // Validar e-mail escolar
+        if (!email.endsWith('@aluno.educa.go.gov.br')) {
+            return res.status(400).json({ error: 'Utilize um e-mail escolar válido (@aluno.educa.go.gov.br).' });
+        }
+        
+        // Verificar se usuário existe pelo e-mail
+        const q = query(collection(db, "users"), where("email", "==", email));
+        const snap = await getDocs(q);
+        
+        let userDoc = null;
+        
+        if (snap.empty) {
+            // Se o usuário não existe, registra um novo usuário sem senha (login via Google)
+            const emailPrefix = email.split('@')[0];
+            let username = emailPrefix.replace(/[^a-z0-9]/g, '');
+            
+            // Garantir username único
+            const qUserCheck = query(collection(db, "users"), where("username", "==", username));
+            const snapUserCheck = await getDocs(qUserCheck);
+            if (!snapUserCheck.empty) {
+                username = username + crypto.randomBytes(3).toString('hex');
+            }
+            
+            const newUser = {
+                username,
+                name,
+                email,
+                googleUid,
+                createdAt: Date.now()
+            };
+            
+            const docRef = await addDoc(collection(db, "users"), newUser);
+            userDoc = { id: docRef.id, ...newUser };
+            console.log(`[Google Auth] Novo usuário registrado: ${username}`);
+        } else {
+            // Se o usuário existe, recupera o registro
+            snap.forEach(d => { userDoc = { id: d.id, ...d.data() }; });
+            
+            // Atualizar o googleUid se ainda não estiver associado
+            if (!userDoc.googleUid) {
+                await updateDoc(doc(db, "users", userDoc.id), { googleUid });
+            }
+            console.log(`[Google Auth] Login efetuado para usuário existente: ${userDoc.username}`);
+        }
+        
+        // Gerar session token
+        const token = crypto.randomBytes(32).toString('hex');
+        const session = {
+            token,
+            userId: userDoc.id,
+            username: userDoc.username,
+            name: userDoc.name,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 dias
+        };
+        await addDoc(collection(db, "sessions"), session);
+        
+        res.json({
+            message: 'Login com Google realizado com sucesso!',
+            token,
+            user: { id: userDoc.id, username: userDoc.username, name: userDoc.name }
+        });
+    } catch (err) {
+        console.error('[Auth Google Error]', err);
+        res.status(500).json({ error: 'Erro ao fazer login com Google: ' + err.message });
+    }
+});
+
 // Obter dados do usuário logado
 app.get('/api/auth/me', authenticateUser, requireAuth, (req, res) => {
     res.json({ user: req.user });

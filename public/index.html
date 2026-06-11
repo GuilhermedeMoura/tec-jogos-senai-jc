@@ -314,6 +314,10 @@
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Entrar</button>
                                 </div>
                                 <div id="loginStatus" class="mt-2 text-center small text-danger"></div>
+                                <div class="or-separator my-3 text-center small text-white-50">ou continue com</div>
+                                <button type="button" class="btn btn-google-login btn-outline-light w-100 py-2 rounded-pill d-flex align-items-center justify-content-center gap-2" id="googleLoginBtn">
+                                    <i class="bi bi-google"></i> Entrar com o Google
+                                </button>
                             </form>
                         </div>
 
@@ -345,6 +349,10 @@
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Cadastrar</button>
                                 </div>
                                 <div id="registerStatus" class="mt-2 text-center small"></div>
+                                <div class="or-separator my-3 text-center small text-white-50">ou continue com</div>
+                                <button type="button" class="btn btn-google-login btn-outline-light w-100 py-2 rounded-pill d-flex align-items-center justify-content-center gap-2" id="googleRegisterBtn">
+                                    <i class="bi bi-google"></i> Cadastrar com o Google
+                                </button>
                             </form>
                         </div>
 
@@ -407,7 +415,12 @@
                                         id="editGameCategory">
                                         <option value="Ação">Ação</option>
                                         <option value="Puzzle">Puzzle</option>
+                                        <option value="Luta">Luta</option>
+                                        <option value="Carrera">Carrera</option>
+                                        <option value="Esportes">Esportes</option>
                                         <option value="Aventura">Aventura</option>
+                                        <option value="Terror">Terror</option>
+                                        <option value="Simulador">Simulador</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">
@@ -496,7 +509,9 @@
                     style="z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);">
                     <h5 class="modal-title text-white fw-bold" id="playModalTitle"></h5>
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" id="toggleGamepadBtn" class="btn btn-sm btn-outline-light rounded-pill px-3 shadow-sm" style="transition: all 0.3s;">
+                        <button type="button" id="toggleGamepadBtn"
+                            class="btn btn-sm btn-outline-light rounded-pill px-3 shadow-sm"
+                            style="transition: all 0.3s;">
                             <i class="bi bi-gamepad me-1"></i> Controles Virtuais
                         </button>
                         <button type="button" class="btn btn-sm btn-light rounded-pill px-4 shadow-sm"
@@ -516,17 +531,21 @@
                         <!-- Left D-pad / Joystick Container -->
                         <div class="gamepad-left">
                             <div class="dpad">
-                                <button class="dpad-btn dpad-up" data-key="ArrowUp" data-code="ArrowUp" data-keycode="38">
+                                <button class="dpad-btn dpad-up" data-key="ArrowUp" data-code="ArrowUp"
+                                    data-keycode="38">
                                     <i class="bi bi-caret-up-fill"></i>
                                 </button>
-                                <button class="dpad-btn dpad-left" data-key="ArrowLeft" data-code="ArrowLeft" data-keycode="37">
+                                <button class="dpad-btn dpad-left" data-key="ArrowLeft" data-code="ArrowLeft"
+                                    data-keycode="37">
                                     <i class="bi bi-caret-left-fill"></i>
                                 </button>
                                 <div class="dpad-center"></div>
-                                <button class="dpad-btn dpad-right" data-key="ArrowRight" data-code="ArrowRight" data-keycode="39">
+                                <button class="dpad-btn dpad-right" data-key="ArrowRight" data-code="ArrowRight"
+                                    data-keycode="39">
                                     <i class="bi bi-caret-right-fill"></i>
                                 </button>
-                                <button class="dpad-btn dpad-down" data-key="ArrowDown" data-code="ArrowDown" data-keycode="40">
+                                <button class="dpad-btn dpad-down" data-key="ArrowDown" data-code="ArrowDown"
+                                    data-keycode="40">
                                     <i class="bi bi-caret-down-fill"></i>
                                 </button>
                             </div>
