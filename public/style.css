@@ -15,7 +15,7 @@
     --accent-gradient: linear-gradient(135deg, #ca4a1b 0%, #e25e2d 100%);
     /* Cor de destaque principal */
     --accent-color: #ca4a1b;
-    --brand-primary: #2d4492;
+    --brand-primary: #0046b5;
     /* Cor principal da empresa */
     --border-radius: 20px;
 }
@@ -164,7 +164,7 @@ body {
 }
 
 .btn-play-hover {
-    background: var(--accent-color);
+    background: var(--brand-primary);
     color: #fff;
     border-radius: 50px;
     padding: 10px 24px;
@@ -174,7 +174,7 @@ body {
 }
 
 .btn-play-hover:hover {
-    background: var(--brand-primary);
+    background: var(--accent-color);
     color: #fff;
 }
 
@@ -261,6 +261,10 @@ body {
     color: #fff;
     padding: 12px 16px;
     border-radius: 12px;
+}
+
+.form-control-clean::placeholder {
+    color: var(--text-main);
 }
 
 .form-control-clean:focus {
