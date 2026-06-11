@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAuthNavbar();
     setupAuthForms();
     setupEditForm();
+    setupVirtualGamepad();
 });
 
 // --- LÓGICA DO MODAL DE UPLOAD ---
@@ -582,6 +583,25 @@ function playGame(url, title) {
 
         const modal = new bootstrap.Modal(document.getElementById('playModal'));
         modal.show();
+
+        // Se for um dispositivo touch, ativa o gamepad por padrão
+        const touch = isTouchDevice();
+        const virtualGamepad = document.getElementById('virtualGamepad');
+        const toggleGamepadBtn = document.getElementById('toggleGamepadBtn');
+        
+        if (virtualGamepad && toggleGamepadBtn) {
+            if (touch) {
+                virtualGamepad.classList.remove('d-none');
+                toggleGamepadBtn.classList.remove('btn-outline-light');
+                toggleGamepadBtn.classList.add('btn-light', 'active');
+                isGamepadVisible = true;
+            } else {
+                virtualGamepad.classList.add('d-none');
+                toggleGamepadBtn.classList.add('btn-outline-light');
+                toggleGamepadBtn.classList.remove('btn-light', 'active');
+                isGamepadVisible = false;
+            }
+        }
     } catch (error) {
         console.error('Erro ao abrir jogo:', error);
         alert('Erro ao carregar o jogo: ' + error.message);
@@ -590,6 +610,13 @@ function playGame(url, title) {
 
 document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
     document.getElementById('gameFrame').src = '';
+    
+    // Reseta estado do gamepad ao fechar o modal
+    const virtualGamepad = document.getElementById('virtualGamepad');
+    if (virtualGamepad) {
+        virtualGamepad.classList.add('d-none');
+        isGamepadVisible = false;
+    }
 });
 
 // --- SISTEMA DE FILTROS E PESQUISA ---
@@ -1187,4 +1214,163 @@ function setupEditForm() {
             }
         });
     }
+}
+
+// --- SISTEMA DE CONTROLES TOUCHSCREEN VIRTUAIS ---
+let gamepadLayout = 'arrows'; // 'arrows' ou 'wasd'
+let isGamepadVisible = false;
+
+// Configuração de mapeamento das teclas do D-pad dependendo do layout
+const dpadKeys = {
+    arrows: {
+        'dpad-up': { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
+        'dpad-down': { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
+        'dpad-left': { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
+        'dpad-right': { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 }
+    },
+    wasd: {
+        'dpad-up': { key: 'w', code: 'KeyW', keyCode: 87 },
+        'dpad-down': { key: 's', code: 'KeyS', keyCode: 83 },
+        'dpad-left': { key: 'a', code: 'KeyA', keyCode: 65 },
+        'dpad-right': { key: 'd', code: 'KeyD', keyCode: 68 }
+    }
+};
+
+// Detectar se o dispositivo é touch
+function isTouchDevice() {
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+}
+
+// Enviar evento de teclado para o iframe do jogo
+function dispatchKeyEventToGame(type, key, code, keyCode) {
+    const gameFrame = document.getElementById('gameFrame');
+    if (!gameFrame || !gameFrame.contentWindow) return;
+    
+    // Foca no iframe para garantir que receba o foco de entrada
+    gameFrame.contentWindow.focus();
+    
+    const eventInit = {
+        key: key,
+        code: code,
+        keyCode: keyCode,
+        which: keyCode,
+        bubbles: true,
+        cancelable: true
+    };
+    
+    try {
+        // Tenta disparar usando o construtor do iframe (mesma origem)
+        const iframeKeyEvent = new gameFrame.contentWindow.KeyboardEvent(type, eventInit);
+        gameFrame.contentWindow.dispatchEvent(iframeKeyEvent);
+        
+        // Também dispara no document dentro do iframe por precaução
+        const iframeDoc = gameFrame.contentDocument || gameFrame.contentWindow.document;
+        if (iframeDoc) {
+            const docKeyEvent = new iframeDoc.defaultView.KeyboardEvent(type, eventInit);
+            iframeDoc.dispatchEvent(docKeyEvent);
+        }
+    } catch (e) {
+        // Fallback usando construtor da janela principal
+        try {
+            const fallbackEvent = new KeyboardEvent(type, eventInit);
+            gameFrame.contentWindow.dispatchEvent(fallbackEvent);
+        } catch (err) {
+            console.warn('[Gamepad] Não foi possível simular evento de teclado:', err);
+        }
+    }
+}
+
+// Configura os ouvintes do gamepad virtual
+function setupVirtualGamepad() {
+    const virtualGamepad = document.getElementById('virtualGamepad');
+    const toggleGamepadBtn = document.getElementById('toggleGamepadBtn');
+    const toggleLayoutBtn = document.getElementById('toggleGamepadLayout');
+    const layoutNameSpan = document.getElementById('gamepadLayoutName');
+    
+    if (!virtualGamepad || !toggleGamepadBtn) return;
+    
+    // Função para atualizar visual do botão de controle
+    function setGamepadVisibility(visible) {
+        isGamepadVisible = visible;
+        if (visible) {
+            virtualGamepad.classList.remove('d-none');
+            toggleGamepadBtn.classList.remove('btn-outline-light');
+            toggleGamepadBtn.classList.add('btn-light', 'active');
+        } else {
+            virtualGamepad.classList.add('d-none');
+            toggleGamepadBtn.classList.add('btn-outline-light');
+            toggleGamepadBtn.classList.remove('btn-light', 'active');
+        }
+    }
+    
+    // Toggle de visibilidade manual
+    toggleGamepadBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setGamepadVisibility(!isGamepadVisible);
+    });
+    
+    // Toggle de layout (Setas / WASD)
+    if (toggleLayoutBtn && layoutNameSpan) {
+        toggleLayoutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            gamepadLayout = gamepadLayout === 'arrows' ? 'wasd' : 'arrows';
+            layoutNameSpan.innerText = gamepadLayout === 'arrows' ? 'Setas' : 'WASD';
+            
+            // Atualiza os atributos data-* dos botões do D-pad para corresponder ao novo layout
+            const dpadButtons = virtualGamepad.querySelectorAll('.dpad-btn');
+            dpadButtons.forEach(btn => {
+                let dpadDirection = '';
+                if (btn.classList.contains('dpad-up')) dpadDirection = 'dpad-up';
+                else if (btn.classList.contains('dpad-down')) dpadDirection = 'dpad-down';
+                else if (btn.classList.contains('dpad-left')) dpadDirection = 'dpad-left';
+                else if (btn.classList.contains('dpad-right')) dpadDirection = 'dpad-right';
+                
+                if (dpadDirection && dpadKeys[gamepadLayout][dpadDirection]) {
+                    const keyConfig = dpadKeys[gamepadLayout][dpadDirection];
+                    btn.dataset.key = keyConfig.key;
+                    btn.dataset.code = keyConfig.code;
+                    btn.dataset.keycode = keyConfig.keyCode;
+                }
+            });
+        });
+    }
+    
+    // Configura botões de pressionar (D-pad e botões de ação)
+    const allButtons = virtualGamepad.querySelectorAll('.dpad-btn, .action-btn');
+    
+    allButtons.forEach(btn => {
+        // Função interna para lidar com pressão do botão
+        const handlePressStart = (e) => {
+            e.preventDefault();
+            btn.classList.add('active-touch');
+            
+            const key = btn.dataset.key;
+            const code = btn.dataset.code;
+            const keyCode = parseInt(btn.dataset.keycode);
+            
+            dispatchKeyEventToGame('keydown', key, code, keyCode);
+        };
+        
+        // Função interna para lidar com soltura do botão
+        const handlePressEnd = (e) => {
+            e.preventDefault();
+            btn.classList.remove('active-touch');
+            
+            const key = btn.dataset.key;
+            const code = btn.dataset.code;
+            const keyCode = parseInt(btn.dataset.keycode);
+            
+            dispatchKeyEventToGame('keyup', key, code, keyCode);
+        };
+        
+        // Eventos Touch (Mobile)
+        btn.addEventListener('touchstart', handlePressStart, { passive: false });
+        btn.addEventListener('touchend', handlePressEnd, { passive: false });
+        btn.addEventListener('touchcancel', handlePressEnd, { passive: false });
+        
+        // Eventos Mouse (para debug em desktops)
+        btn.addEventListener('mousedown', handlePressStart);
+        btn.addEventListener('mouseup', handlePressEnd);
+        btn.addEventListener('mouseleave', handlePressEnd);
+    });
 }
