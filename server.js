@@ -1496,7 +1496,7 @@ app.post('/upload', rateLimiter(50, 60 * 60 * 1000), authenticateUser, uploadGam
 
         try { fs.unlinkSync(file.path); } catch (_) {}
 
-        if (!indexHtmlPath || !fs.existsSync(path.join(localGamePath, 'index.html'))) {
+        if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, indexInfo ? indexInfo.fileName : 'index.html'))) {
             fs.rmSync(localGamePath, { recursive: true, force: true });
             return res.status(400).json({ error: 'Nenhum ponto de entrada encontrado. ZIP deve conter index.html (HTML/Unity/Godot) ou main.py (Python/Pygame).' });
         }
@@ -1729,7 +1729,7 @@ app.post('/api/games/:gameId/update', rateLimiter(15, 60 * 1000), authenticateUs
 
             try { fs.unlinkSync(file.path); } catch (_) {}
 
-            if (!indexHtmlPath || !fs.existsSync(path.join(localGamePath, 'index.html'))) {
+            if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, indexInfo ? indexInfo.fileName : 'index.html'))) {
                 return res.status(400).json({ error: 'Nenhum ponto de entrada encontrado (.html/.py).' });
             }
 
@@ -2158,7 +2158,7 @@ app.post('/api/sites/:siteId/update', rateLimiter(15, 60 * 1000), authenticateUs
 
             try { fs.unlinkSync(file.path); } catch (_) {}
 
-            if (!indexHtmlPath || !fs.existsSync(path.join(localSitePath, 'index.html'))) {
+            if (!indexHtmlPath || !fs.existsSync(path.join(indexHtmlPath, indexInfo ? indexInfo.fileName : 'index.html'))) {
                 return res.status(400).json({ error: 'Nenhum ponto de entrada encontrado (index.html).' });
             }
 
