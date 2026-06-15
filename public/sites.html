@@ -322,6 +322,10 @@
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Entrar</button>
                                 </div>
                                 <div id="loginStatus" class="mt-2 text-center small text-danger"></div>
+                                <div class="or-separator my-3 text-center small text-white-50">ou continue com</div>
+                                <button type="button" class="btn btn-google-login btn-outline-light w-100 py-2 rounded-pill d-flex align-items-center justify-content-center gap-2" id="googleLoginBtn">
+                                    <i class="bi bi-google"></i> Entrar com o Google
+                                </button>
                             </form>
                         </div>
 
@@ -352,6 +356,10 @@
                                     <button type="submit" class="btn btn-modern-primary btn-lg">Cadastrar</button>
                                 </div>
                                 <div id="registerStatus" class="mt-2 text-center small"></div>
+                                <div class="or-separator my-3 text-center small text-white-50">ou continue com</div>
+                                <button type="button" class="btn btn-google-login btn-outline-light w-100 py-2 rounded-pill d-flex align-items-center justify-content-center gap-2" id="googleRegisterBtn">
+                                    <i class="bi bi-google"></i> Cadastrar com o Google
+                                </button>
                             </form>
                         </div>
 
@@ -521,7 +529,22 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyD0J8UyDyOxhhpj9pvNj-eUuSRiWJ8Qjv8",
+          authDomain: "tec-jogos-senai-jc.firebaseapp.com",
+          projectId: "tec-jogos-senai-jc",
+          storageBucket: "tec-jogos-senai-jc.firebasestorage.app",
+          messagingSenderId: "952832354030",
+          appId: "1:952832354030:web:93698003ddef974521f5ff"
+        };
+
+        const firebaseApp = initializeApp(firebaseConfig);
+        const auth = getAuth(firebaseApp);
+
         // Dados das escolas — espelho exato do script.js
         const schoolsData = {
             'Goiania': [
@@ -1051,6 +1074,7 @@
             const modal = new bootstrap.Modal(document.getElementById('playModal'));
             modal.show();
         }
+        window.openSite = openSite;
 
         document.getElementById('playModal').addEventListener('hidden.bs.modal', () => {
             document.getElementById('gameFrame').src = '';
@@ -1461,6 +1485,84 @@
             }
         }
 
+        // --- SISTEMA DE AUTENTICAÇÃO COM GOOGLE ---
+        async function handleGoogleSignIn(statusElementId) {
+            const status = document.getElementById(statusElementId);
+            if (status) {
+                status.innerText = "Autenticando com o Google...";
+                status.className = "mt-2 text-center small text-warning";
+            }
+            
+            try {
+                const provider = new GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                
+                const result = await signInWithPopup(auth, provider);
+                const firebaseUser = result.user;
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(firebaseUser.email)) {
+                    throw new Error('Utilize um e-mail válido.');
+                }
+                
+                // Enviar os dados recebidos para o backend para criar sessão ou registrar
+                const response = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: firebaseUser.email,
+                        name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+                        uid: firebaseUser.uid
+                    })
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erro ao sincronizar com o servidor.');
+                
+                localStorage.setItem('student_token', data.token);
+                localStorage.setItem('student_user', JSON.stringify(data.user));
+                
+                if (status) {
+                    status.innerText = "Conectado com sucesso!";
+                    status.className = "mt-2 text-center small text-success";
+                }
+                
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    if (modal) modal.hide();
+                    if (status) status.innerText = "";
+                    updateAuthNavbar();
+                    loadSites();
+                }, 1000);
+                
+            } catch (err) {
+                if (status) {
+                    status.innerText = err.message;
+                    status.className = "mt-2 text-center small text-danger";
+                }
+                console.error('[Google Auth Error]', err);
+            }
+        }
+
+        function setupGoogleAuthButtons() {
+            const googleLoginBtn = document.getElementById('googleLoginBtn');
+            const googleRegisterBtn = document.getElementById('googleRegisterBtn');
+            
+            if (googleLoginBtn) {
+                googleLoginBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleGoogleSignIn('loginStatus');
+                });
+            }
+            
+            if (googleRegisterBtn) {
+                googleRegisterBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleGoogleSignIn('registerStatus');
+                });
+            }
+        }
+
         function populateEditSchools(city, selectedSchool = '') {
             const schoolSelect = document.getElementById('editSchoolSelect');
             schoolSelect.innerHTML = '<option value="">Selecione a cidade primeiro</option>';
@@ -1649,6 +1751,7 @@
             loadSites();
             updateAuthNavbar();
             setupAuthForms();
+            setupGoogleAuthButtons();
             setupEditForm();
         });
     </script>
